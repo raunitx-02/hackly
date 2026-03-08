@@ -5,13 +5,16 @@ import {
     Mail,
     Users,
     ChevronRight,
-    Globe
+    Globe,
+    X,
+    ZoomIn
 } from 'lucide-react';
 import { ABOUT_COPY } from '../data/aboutConfig';
 import BookCallModal from '../components/BookCallModal';
 
 export default function AboutPage() {
     const [isBookCallOpen, setIsBookCallOpen] = useState(false);
+    const [isImageLightboxOpen, setIsImageLightboxOpen] = useState(false);
 
     return (
         <div style={{ background: '#0F172A', minHeight: '100vh', color: '#F8FAFC' }}>
@@ -109,14 +112,28 @@ export default function AboutPage() {
                                     width: 240, height: 240, borderRadius: '50%', margin: '0 auto 24px',
                                     background: 'linear-gradient(135deg, #3B82F620, #8B5CF620)',
                                     border: '4px solid #1E293B', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    position: 'relative', overflow: 'hidden'
-                                }}>
+                                    position: 'relative', overflow: 'hidden', cursor: ABOUT_COPY.founder.image ? 'pointer' : 'default'
+                                }}
+                                    className="founder-img-container"
+                                    onClick={() => ABOUT_COPY.founder.image && setIsImageLightboxOpen(true)}
+                                >
                                     {ABOUT_COPY.founder.image ? (
-                                        <img src={ABOUT_COPY.founder.image} alt={ABOUT_COPY.founder.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        <>
+                                            <img src={ABOUT_COPY.founder.image} alt={ABOUT_COPY.founder.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            <div className="founder-img-overlay" style={{
+                                                position: 'absolute', inset: 0, background: 'rgba(15,23,42,0.5)',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity 0.2s',
+                                                backdropFilter: 'blur(2px)'
+                                            }}>
+                                                <div style={{ background: 'rgba(255,255,255,0.2)', padding: 12, borderRadius: '50%', color: 'white' }}>
+                                                    <ZoomIn size={28} />
+                                                </div>
+                                            </div>
+                                        </>
                                     ) : (
                                         <Users size={80} color="#3B82F6" opacity={0.5} />
                                     )}
-                                    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 60%, rgba(15,23,42,0.8))' }} />
+                                    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 60%, rgba(15,23,42,0.8))', pointerEvents: 'none' }} />
                                 </div>
                                 <h3 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8 }}>{ABOUT_COPY.founder.name}</h3>
                                 <p style={{ color: '#3B82F6', fontWeight: 600, fontSize: 14, marginBottom: 4 }}>{ABOUT_COPY.founder.tagline}</p>
@@ -232,9 +249,60 @@ export default function AboutPage() {
                 </section>
             </div>
 
+            {/* Profile Image Lightbox */}
+            {isImageLightboxOpen && ABOUT_COPY.founder.image && (
+                <div
+                    style={{
+                        position: 'fixed', inset: 0, zIndex: 9999,
+                        background: 'rgba(15, 23, 42, 0.85)', backdropFilter: 'blur(10px)',
+                        WebkitBackdropFilter: 'blur(10px)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        animation: 'fadeIn 0.2s ease-out'
+                    }}
+                    onClick={() => setIsImageLightboxOpen(false)}
+                >
+                    <button
+                        onClick={() => setIsImageLightboxOpen(false)}
+                        style={{
+                            position: 'absolute', top: 24, right: 24, background: 'rgba(255,255,255,0.1)',
+                            border: 'none', borderRadius: '50%', width: 44, height: 44,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            cursor: 'pointer', color: 'white', transition: 'background 0.2s'
+                        }}
+                        className="lightbox-close-btn"
+                    >
+                        <X size={24} />
+                    </button>
+                    <img
+                        src={ABOUT_COPY.founder.image}
+                        alt="Founder Full Size"
+                        style={{
+                            maxWidth: '90%', maxHeight: '90vh', objectFit: 'contain',
+                            borderRadius: 16, boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+                            animation: 'scaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+                        }}
+                        onClick={e => e.stopPropagation()}
+                    />
+                </div>
+            )}
+
             <BookCallModal isOpen={isBookCallOpen} onClose={() => setIsBookCallOpen(false)} source="about_page_bottom" />
 
             <style>{`
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                @keyframes scaleUp {
+                    from { opacity: 0; transform: scale(0.95); }
+                    to { opacity: 1; transform: scale(1); }
+                }
+                .founder-img-container:hover .founder-img-overlay {
+                    opacity: 1 !important;
+                }
+                .lightbox-close-btn:hover {
+                    background: rgba(255,255,255,0.2) !important;
+                }
                 @media (max-width: 900px) {
                     .founder-grid {
                         grid-template-columns: 1fr !important;
