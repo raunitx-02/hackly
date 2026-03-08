@@ -34,12 +34,12 @@ export const ABOUT_COPY = {
     },
     founder: {
         title: "Who’s building Hackly?",
-        name: "Raunit",
+        name: "Raunit Raj",
         tagline: "Student founder & full-stack builder of Hackly",
         location: "Based in India",
-        image: "/founder-profile.jpg",
-        bio: "Hackly has been designed and developed end-to-end by a single student founder. I built it using a modern stack including React, HTML, Vanilla CSS, JavaScript, Tailwind CSS, and Firebase/Firestore. With experience in organising campus events and hackathons, I've turned those learnings into features that solve real problems for schools, coaching centers, and colleges.",
-        techStack: ['React', 'HTML & Vanilla CSS', 'JavaScript', 'Firebase/Firestore', 'Tailwind CSS', 'Lucide Icons'],
+        image: "/founder-profile.png",
+        bio: "Hackly has been designed and developed end-to-end by a single student founder. I built it using a modern web development stack including React, HTML, CSS, JavaScript, Tailwind CSS, and powered the backend with Firebase and Firestore. With experience in organising campus events and hackathons, I've turned those learnings into features that solve real problems for schools, coaching centers, and colleges.",
+        techStack: ['React', 'JavaScript', 'HTML & CSS', 'Firebase & Firestore', 'Tailwind CSS', 'Vite', 'Lucide Icons'],
         email: "raunit@luckly.online", // Placeholder, user mentioned mailto link configurable via constant
         collab: {
             title: "Want to collaborate or invest early?",
