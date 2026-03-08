@@ -1,0 +1,87 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isLoggedIn() {
+      return request.auth != null;
+    }
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    function isAdmin() {
+      return isLoggedIn() && getUserData().role == 'admin';
+    }
+    function isBlacklisted() {
+      return isLoggedIn() && getUserData().isBlacklisted == true;
+    }
+    function isOwner(uid) {
+      return request.auth.uid == uid;
+    }
+    function getUserRole() {
+      return getUserData().role;
+    }
+
+    // Global Admin Override
+    match /{document=**} {
+      allow read, write: if isAdmin();
+    }
+
+    // Users: anyone can read their own, only themselves can write (admins handled by global)
+    match /users/{userId} {
+      allow read: if isLoggedIn();
+      allow create: if isLoggedIn() && isOwner(userId);
+      allow update: if isLoggedIn() && isOwner(userId);
+    }
+
+    // Events: anyone can read approved events; organizers can create/edit their own
+    match /events/{eventId} {
+      allow read: if true;
+      allow create: if isLoggedIn() && getUserRole() == 'organizer' && !isBlacklisted();
+      allow update: if isLoggedIn() && !isBlacklisted() &&
+        (resource.data.organizerId == request.auth.uid);
+      allow delete: if isLoggedIn() && resource.data.organizerId == request.auth.uid;
+    }
+
+    // Registrations
+    match /registrations/{regId} {
+      allow read: if isLoggedIn() &&
+        (resource.data.userId == request.auth.uid || getUserRole() == 'organizer');
+      allow create: if isLoggedIn() && !isBlacklisted();
+      allow update, delete: if isLoggedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    // Teams
+    match /teams/{teamId} {
+      allow read: if isLoggedIn();
+      allow create: if isLoggedIn() && !isBlacklisted();
+      allow update: if isLoggedIn() && !isBlacklisted() &&
+        (resource.data.leaderId == request.auth.uid ||
+         request.auth.uid in resource.data.members);
+      allow delete: if isLoggedIn() && resource.data.leaderId == request.auth.uid;
+    }
+
+    // Submissions
+    match /submissions/{subId} {
+      allow read: if isLoggedIn();
+      allow create: if isLoggedIn() && getUserRole() == 'participant' && !isBlacklisted();
+      allow update: if isLoggedIn() && !isBlacklisted() && resource.data.userId == request.auth.uid;
+      allow delete: if isLoggedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    // Scores
+    match /scores/{scoreId} {
+      allow read: if true;
+      allow create: if isLoggedIn() && getUserRole() == 'judge';
+      allow update: if isLoggedIn() && resource.data.judgeId == request.auth.uid;
+    }
+
+    // Admin Only Collections (read/write handled by global admin override)
+    match /adminSettings/{docId} {
+      allow read, write: if false; // Only via Admin override
+    }
+    match /moderationLog/{docId} {
+      allow read, write: if false; // Only via Admin override
+    }
+  }
+}

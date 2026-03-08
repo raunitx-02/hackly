@@ -1,0 +1,5 @@
+/* Cleaned default App.css - All custom styles moved to index.css and Tailwind */
+#root {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
