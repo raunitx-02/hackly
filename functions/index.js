@@ -161,10 +161,9 @@ exports.createCashfreeOrder = functions.https.onCall(async (data, context) => {
     const { planName, amount, customerPhone = "9999999999", customerName = "Organizer" } = data; // Amount in INR
 
     // 2. Fetch Cashfree Keys (Environment variables)
-    // Fallback to test dummy keys if not set (Sandbox)
-    const APP_ID = functions.config().cashfree?.app_id || 'TEST10245084931a233b49cb39e4a3c248054201';
-    const SECRET_KEY = functions.config().cashfree?.secret_key || 'cfsk_ma_test_0c9bb1e4c7bca1421ab39bded6f1a8c8_5419ed22';
-    const ENVIRONMENT = functions.config().cashfree?.environment || 'SANDBOX'; // PRODUCTION or SANDBOX
+    const APP_ID = process.env.CASHFREE_APP_ID;
+    const SECRET_KEY = process.env.CASHFREE_SECRET_KEY;
+    const ENVIRONMENT = process.env.CASHFREE_ENVIRONMENT || 'SANDBOX'; // PRODUCTION or SANDBOX
 
     const baseUrl = ENVIRONMENT === 'PRODUCTION'
         ? 'https://api.cashfree.com/pg/orders'
@@ -234,7 +233,7 @@ exports.cashfreeWebhook = functions.https.onRequest(async (req, res) => {
         const timestamp = req.headers['x-webhook-timestamp'];
         const bodyRaw = req.rawBody.toString(); // Necessary for HMAC crypto verification
 
-        const SECRET_KEY = functions.config().cashfree?.secret_key || 'cfsk_ma_test_0c9bb1e4c7bca1421ab39bded6f1a8c8_5419ed22';
+        const SECRET_KEY = process.env.CASHFREE_SECRET_KEY;
 
         // 1. Verify Cashfree Webhook Signature
         const expectedSignature = crypto

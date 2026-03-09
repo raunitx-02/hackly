@@ -16,7 +16,7 @@ const PaymentService = {
     initializeCashfree: async () => {
         if (!PaymentService.cashfree) {
             PaymentService.cashfree = await load({
-                mode: "sandbox", // Switch to "production" when going live
+                mode: "production", // Live Payments Enabled
             });
         }
         return PaymentService.cashfree;
