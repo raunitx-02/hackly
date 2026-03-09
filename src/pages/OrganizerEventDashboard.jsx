@@ -86,7 +86,7 @@ function ApplicationsTab({ event }) {
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                 <thead style={{ background: 'rgba(255,255,255,0.02)' }}>
                     <tr style={{ borderBottom: '1px solid #334155' }}>
-                        <th style={{ padding: '16px 24px', color: '#94A3B8', fontSize: 12, fontWeight: 600 }}>User ID & Reliability</th>
+                        <th style={{ padding: '16px 24px', color: '#94A3B8', fontSize: 12, fontWeight: 600 }}>User ID {hasFeature('reliability_badges') && "& Reliability"}</th>
                         <th style={{ padding: '16px 24px', color: '#94A3B8', fontSize: 12, fontWeight: 600 }}>Motivation</th>
                         <th style={{ padding: '16px 24px', color: '#94A3B8', fontSize: 12, fontWeight: 600 }}>Skills</th>
                         <th style={{ padding: '16px 24px', color: '#94A3B8', fontSize: 12, fontWeight: 600 }}>Status</th>
@@ -103,14 +103,16 @@ function ApplicationsTab({ event }) {
                             <tr key={reg.id} style={{ borderBottom: '1px solid #334155' }}>
                                 <td style={{ padding: '16px 24px' }}>
                                     <div style={{ color: '#F8FAFC', fontSize: 13, marginBottom: 6 }}>{reg.userId?.slice(0, 8)}</div>
-                                    <div
-                                        title={`Reg: ${userStat.eventsRegistered} | Checked-in: ${userStat.eventsCheckedIn} | Submitted: ${userStat.projectsSubmitted}`}
-                                        style={{
-                                            display: 'inline-block', padding: '4px 8px', borderRadius: 6, fontSize: 11, fontWeight: 600,
-                                            background: tier.bg, color: tier.color, border: `1px solid ${tier.color}30`, cursor: 'help'
-                                        }}>
-                                        {tier.label} ({score})
-                                    </div>
+                                    {hasFeature('reliability_badges') && (
+                                        <div
+                                            title={`Reg: ${userStat.eventsRegistered} | Checked-in: ${userStat.eventsCheckedIn} | Submitted: ${userStat.projectsSubmitted}`}
+                                            style={{
+                                                display: 'inline-block', padding: '4px 8px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+                                                background: tier.bg, color: tier.color, border: `1px solid ${tier.color}30`, cursor: 'help'
+                                            }}>
+                                            {tier.label} ({score})
+                                        </div>
+                                    )}
                                 </td>
                                 <td style={{ padding: '16px 24px', color: '#94A3B8', fontSize: 13, maxWidth: 200, WebkitLineClamp: 2, display: '-webkit-box', WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{reg.applicationData?.motivation || '—'}</td>
                                 <td style={{ padding: '16px 24px', color: '#94A3B8', fontSize: 13 }}>{reg.applicationData?.skills || '—'}</td>
@@ -323,7 +325,7 @@ function CampusPulseTab({ event }) {
 
 export default function OrganizerEventDashboard() {
     const { id } = useParams();
-    const { currentUser } = useAuth();
+    const { currentUser, hasFeature } = useAuth();
     const navigate = useNavigate();
     const [event, setEvent] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -350,8 +352,11 @@ export default function OrganizerEventDashboard() {
         { id: 'applications', label: ORGANIZER_CONFIG.labels.applications, icon: Users },
         { id: 'reports', label: ORGANIZER_CONFIG.labels.reports, icon: FileText },
         { id: 'judges', label: ORGANIZER_CONFIG.labels.judges, icon: Shield },
-        { id: 'pulse', label: 'Campus Pulse', icon: Megaphone },
     ];
+
+    if (hasFeature('campus_pulse')) {
+        TABS.push({ id: 'pulse', label: 'Campus Pulse', icon: Megaphone });
+    }
 
     return (
         <DashboardLayout>

@@ -214,7 +214,8 @@ export default function PricingPage() {
 
                         <div style={{
                             background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.2)',
-                            borderRadius: 12, padding: '16px', textAlign: 'center', marginBottom: 40, maxWidth: 600, margin: '0 auto',
+                            borderRadius: 12, padding: '16px', textAlign: 'center', maxWidth: 600,
+                            margin: '0 auto 40px',
                             color: '#60A5FA', fontSize: 15, fontWeight: 500
                         }}>
                             {DFY_CONFIG.detailSection.infoStripText}

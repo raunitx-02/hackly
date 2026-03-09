@@ -91,8 +91,11 @@ function Row({ children, cols = 2 }) {
 import { BLOCKED_KEYWORDS } from '../data/adminBlockedKeywords';
 
 export default function CreateEventPage() {
+    const { currentUser, hasFeature } = useAuth();
     const [step, setStep] = useState(1);
     const [problemStatements, setProblemStatements] = useState(['']);
+
+    const canUseAI = hasFeature('ai_generator');
 
     // AI Generator State
     const [isAIPanelOpen, setIsAIPanelOpen] = useState(false);
@@ -104,7 +107,6 @@ export default function CreateEventPage() {
     const [judges, setJudges] = useState(['']);
     const [criteria, setCriteria] = useState([{ name: 'Innovation', weight: 25 }, { name: 'Technical', weight: 25 }, { name: 'UI/UX', weight: 25 }, { name: 'Presentation', weight: 25 }]);
     const [submitting, setSubmitting] = useState(false);
-    const { currentUser, userProfile } = useAuth();
     const navigate = useNavigate();
 
     const { register, handleSubmit, watch, formState: { errors }, trigger, getValues } = useForm({
@@ -324,118 +326,132 @@ export default function CreateEventPage() {
                         </SectionCard>
 
                         <SectionCard title="Problem Statements" icon={MapPin}>
-                            {/* AI Generator Panel Header */}
-                            <div style={{ padding: '16px', background: 'rgba(59,130,246,0.05)', borderRadius: 12, border: '1px solid rgba(59,130,246,0.2)', marginBottom: 24 }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                        <div style={{ background: '#3B82F6', padding: 8, borderRadius: 8 }}>
-                                            <Sparkles size={18} color="white" />
+                            {/* AI Generator Section - Plan Gated */}
+                            {canUseAI ? (
+                                <div style={{ padding: '16px', background: 'rgba(59,130,246,0.05)', borderRadius: 12, border: '1px solid rgba(59,130,246,0.2)', marginBottom: 24 }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                            <div style={{ background: '#3B82F6', padding: 8, borderRadius: 8 }}>
+                                                <Sparkles size={18} color="white" />
+                                            </div>
+                                            <div>
+                                                <h4 style={{ color: '#F8FAFC', fontSize: 15, fontWeight: 700 }}>Generate problem statements with AI</h4>
+                                                <p style={{ color: '#94A3B8', fontSize: 12, marginTop: 2 }}>Auto-create structured syllabus-aware problems instantly.</p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <h4 style={{ color: '#F8FAFC', fontSize: 15, fontWeight: 700 }}>Generate problem statements with AI</h4>
-                                            <p style={{ color: '#94A3B8', fontSize: 12, marginTop: 2 }}>Auto-create structured syllabus-aware problems instantly.</p>
-                                        </div>
-                                    </div>
-                                    <button onClick={() => setIsAIPanelOpen(!isAIPanelOpen)} type="button" className="btn-outline" style={{ padding: '6px 14px', fontSize: 13, borderColor: 'rgba(59,130,246,0.5)', color: '#3B82F6' }}>
-                                        {isAIPanelOpen ? 'Close Panel' : 'Open AI Tool'}
-                                    </button>
-                                </div>
-
-                                {/* Expanded Form */}
-                                {isAIPanelOpen && (
-                                    <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-                                        <Row cols={2}>
-                                            <Field label="Educational Board">
-                                                <select className="input" value={aiForm.board} onChange={e => setAiForm({ ...aiForm, board: e.target.value })}>
-                                                    {AI_GENERATOR_CONFIG.boards.map(b => <option key={b.id} value={b.id}>{b.label}</option>)}
-                                                </select>
-                                            </Field>
-                                            <Field label="Class / Year">
-                                                <select className="input" value={aiForm.class} onChange={e => setAiForm({ ...aiForm, class: e.target.value })}>
-                                                    {AI_GENERATOR_CONFIG.classes.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-                                                </select>
-                                            </Field>
-                                        </Row>
-
-                                        <div style={{ marginTop: 16 }}>
-                                            <Field label="Stream / Subjects (Multi-select) *">
-                                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
-                                                    {AI_GENERATOR_CONFIG.streams.map(s => {
-                                                        const isSel = aiStreams.includes(s.id);
-                                                        return (
-                                                            <button key={s.id} type="button" onClick={() => setAiStreams(isSel ? aiStreams.filter(id => id !== s.id) : [...aiStreams, s.id])}
-                                                                style={{
-                                                                    padding: '6px 12px', borderRadius: 99, fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                                                                    background: isSel ? '#3B82F6' : 'rgba(255,255,255,0.05)', border: isSel ? '1px solid #3B82F6' : '1px solid #334155', color: isSel ? 'white' : '#94A3B8', transition: '0.2s'
-                                                                }}>
-                                                                {s.label}
-                                                            </button>
-                                                        )
-                                                    })}
-                                                </div>
-                                            </Field>
-                                        </div>
-
-                                        <div style={{ marginTop: 16 }}>
-                                            <Field label="Theme / Core Idea *">
-                                                <input className="input" placeholder="e.g. Financial literacy, Sustainability, AI..." value={aiForm.theme} onChange={e => setAiForm({ ...aiForm, theme: e.target.value })} />
-                                            </Field>
-                                        </div>
-
-                                        <div style={{ marginTop: 16 }}>
-                                            <Field label="Difficulty">
-                                                <div style={{ display: 'flex', gap: 16, marginTop: 8 }}>
-                                                    {AI_GENERATOR_CONFIG.difficulties.map(d => (
-                                                        <label key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#CBD5E1', fontSize: 13, cursor: 'pointer' }}>
-                                                            <input type="radio" name="aiDifficulty" value={d.id} checked={aiForm.difficulty === d.id} onChange={e => setAiForm({ ...aiForm, difficulty: e.target.value })} style={{ accentColor: '#3B82F6', width: 16, height: 16 }} />
-                                                            {d.label}
-                                                        </label>
-                                                    ))}
-                                                </div>
-                                            </Field>
-                                        </div>
-
-                                        <button onClick={handleGenerateAI} disabled={aiLoading} type="button" className="btn-gradient" style={{ width: '100%', justifyContent: 'center', marginTop: 24, padding: '12px', fontSize: 14 }}>
-                                            {aiLoading ? (
-                                                <><Activity size={18} className="animate-spin" /> Cooking Problem Statements...</>
-                                            ) : (
-                                                <><Sparkles size={18} /> Generate 5 Problem Statements</>
-                                            )}
+                                        <button onClick={() => setIsAIPanelOpen(!isAIPanelOpen)} type="button" className="btn-outline" style={{ padding: '6px 14px', fontSize: 13, borderColor: 'rgba(59,130,246,0.5)', color: '#3B82F6' }}>
+                                            {isAIPanelOpen ? 'Close Panel' : 'Open AI Tool'}
                                         </button>
+                                    </div>
 
-                                        {/* AI Selection Results */}
-                                        {aiResults.length > 0 && (
-                                            <div style={{ marginTop: 24, padding: 16, background: '#0F172A', borderRadius: 12, border: '1px solid #1E293B' }}>
-                                                <h5 style={{ color: '#F8FAFC', fontSize: 14, fontWeight: 700, marginBottom: 12 }}>Generated Proposals ({aiResults.length})</h5>
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxHeight: 400, overflowY: 'auto', paddingRight: 4 }}>
-                                                    {aiResults.map((res, i) => (
-                                                        <div key={i} style={{ padding: 16, background: 'rgba(255,255,255,0.02)', borderRadius: 12, border: res._selected ? '1px solid #3B82F6' : '1px solid #334155', cursor: 'pointer' }} onClick={() => { const a = [...aiResults]; a[i]._selected = !a[i]._selected; setAiResults(a); }}>
-                                                            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                                                                <input type="checkbox" readOnly checked={res._selected} style={{ marginTop: 4, width: 16, height: 16, accentColor: '#3B82F6' }} />
-                                                                <div>
-                                                                    <div style={{ color: '#F8FAFC', fontWeight: 600, fontSize: 14, marginBottom: 4 }}>{res.title}</div>
-                                                                    <div style={{ color: '#94A3B8', fontSize: 13, lineHeight: 1.5, marginBottom: 8 }}>{res.description}</div>
-                                                                    {res.learningOutcomes && (
-                                                                        <div style={{ marginBottom: 6 }}>
-                                                                            <span style={{ fontSize: 11, color: '#64748B', fontWeight: 700, textTransform: 'uppercase' }}>Learning Outcomes:</span>
-                                                                            <ul style={{ paddingLeft: 16, marginTop: 4, color: '#CBD5E1', fontSize: 12 }}>
-                                                                                {res.learningOutcomes.map((lo, j) => <li key={j}>{lo}</li>)}
-                                                                            </ul>
-                                                                        </div>
-                                                                    )}
+                                    {/* Expanded Form */}
+                                    {isAIPanelOpen && (
+                                        <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                                            <Row cols={2}>
+                                                <Field label="Educational Board">
+                                                    <select className="input" value={aiForm.board} onChange={e => setAiForm({ ...aiForm, board: e.target.value })}>
+                                                        {AI_GENERATOR_CONFIG.boards.map(b => <option key={b.id} value={b.id}>{b.label}</option>)}
+                                                    </select>
+                                                </Field>
+                                                <Field label="Class / Year">
+                                                    <select className="input" value={aiForm.class} onChange={e => setAiForm({ ...aiForm, class: e.target.value })}>
+                                                        {AI_GENERATOR_CONFIG.classes.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+                                                    </select>
+                                                </Field>
+                                            </Row>
+
+                                            <div style={{ marginTop: 16 }}>
+                                                <Field label="Stream / Subjects (Multi-select) *">
+                                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+                                                        {AI_GENERATOR_CONFIG.streams.map(s => {
+                                                            const isSel = aiStreams.includes(s.id);
+                                                            return (
+                                                                <button key={s.id} type="button" onClick={() => setAiStreams(isSel ? aiStreams.filter(id => id !== s.id) : [...aiStreams, s.id])}
+                                                                    style={{
+                                                                        padding: '6px 12px', borderRadius: 99, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                                                                        background: isSel ? '#3B82F6' : 'rgba(255,255,255,0.05)', border: isSel ? '1px solid #3B82F6' : '1px solid #334155', color: isSel ? 'white' : '#94A3B8', transition: '0.2s'
+                                                                    }}>
+                                                                    {s.label}
+                                                                </button>
+                                                            )
+                                                        })}
+                                                    </div>
+                                                </Field>
+                                            </div>
+
+                                            <div style={{ marginTop: 16 }}>
+                                                <Field label="Theme / Core Idea *">
+                                                    <input className="input" placeholder="e.g. Financial literacy, Sustainability, AI..." value={aiForm.theme} onChange={e => setAiForm({ ...aiForm, theme: e.target.value })} />
+                                                </Field>
+                                            </div>
+
+                                            <div style={{ marginTop: 16 }}>
+                                                <Field label="Difficulty">
+                                                    <div style={{ display: 'flex', gap: 16, marginTop: 8 }}>
+                                                        {AI_GENERATOR_CONFIG.difficulties.map(d => (
+                                                            <label key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#CBD5E1', fontSize: 13, cursor: 'pointer' }}>
+                                                                <input type="radio" name="aiDifficulty" value={d.id} checked={aiForm.difficulty === d.id} onChange={e => setAiForm({ ...aiForm, difficulty: e.target.value })} style={{ accentColor: '#3B82F6', width: 16, height: 16 }} />
+                                                                {d.label}
+                                                            </label>
+                                                        ))}
+                                                    </div>
+                                                </Field>
+                                            </div>
+
+                                            <button onClick={handleGenerateAI} disabled={aiLoading} type="button" className="btn-gradient" style={{ width: '100%', justifyContent: 'center', marginTop: 24, padding: '12px', fontSize: 14 }}>
+                                                {aiLoading ? (
+                                                    <><Activity size={18} className="animate-spin" /> Cooking Problem Statements...</>
+                                                ) : (
+                                                    <><Sparkles size={18} /> Generate 5 Problem Statements</>
+                                                )}
+                                            </button>
+
+                                            {/* AI Selection Results */}
+                                            {aiResults.length > 0 && (
+                                                <div style={{ marginTop: 24, padding: 16, background: '#0F172A', borderRadius: 12, border: '1px solid #1E293B' }}>
+                                                    <h5 style={{ color: '#F8FAFC', fontSize: 14, fontWeight: 700, marginBottom: 12 }}>Generated Proposals ({aiResults.length})</h5>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxHeight: 400, overflowY: 'auto', paddingRight: 4 }}>
+                                                        {aiResults.map((res, i) => (
+                                                            <div key={i} style={{ padding: 16, background: 'rgba(255,255,255,0.02)', borderRadius: 12, border: res._selected ? '1px solid #3B82F6' : '1px solid #334155', cursor: 'pointer' }} onClick={() => { const a = [...aiResults]; a[i]._selected = !a[i]._selected; setAiResults(a); }}>
+                                                                <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                                                                    <input type="checkbox" readOnly checked={res._selected} style={{ marginTop: 4, width: 16, height: 16, accentColor: '#3B82F6' }} />
+                                                                    <div>
+                                                                        <div style={{ color: '#F8FAFC', fontWeight: 600, fontSize: 14, marginBottom: 4 }}>{res.title}</div>
+                                                                        <div style={{ color: '#94A3B8', fontSize: 13, lineHeight: 1.5, marginBottom: 8 }}>{res.description}</div>
+                                                                        {res.learningOutcomes && (
+                                                                            <div style={{ marginBottom: 6 }}>
+                                                                                <span style={{ fontSize: 11, color: '#64748B', fontWeight: 700, textTransform: 'uppercase' }}>Learning Outcomes:</span>
+                                                                                <ul style={{ paddingLeft: 16, marginTop: 4, color: '#CBD5E1', fontSize: 12 }}>
+                                                                                    {res.learningOutcomes.map((lo, j) => <li key={j}>{lo}</li>)}
+                                                                                </ul>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
                                                                 </div>
                                                             </div>
-                                                        </div>
-                                                    ))}
+                                                        ))}
+                                                    </div>
+                                                    <button onClick={handleAddSelectedAIProblems} type="button" className="btn-gradient" style={{ width: '100%', justifyContent: 'center', marginTop: 16 }}>
+                                                        <CheckCircle size={18} /> Add Selected to Event
+                                                    </button>
                                                 </div>
-                                                <button onClick={handleAddSelectedAIProblems} type="button" className="btn-gradient" style={{ width: '100%', justifyContent: 'center', marginTop: 16 }}>
-                                                    <CheckCircle size={18} /> Add Selected to Event
-                                                </button>
-                                            </div>
-                                        )}
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div style={{ padding: '24px', background: 'rgba(255,255,255,0.02)', borderRadius: 12, border: '1px dashed #334155', textAlign: 'center', marginBottom: 24 }}>
+                                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
+                                        <div style={{ background: '#334155', padding: 8, borderRadius: 8 }}>
+                                            <Sparkles size={18} color="#64748B" />
+                                        </div>
                                     </div>
-                                )}
-                            </div>
+                                    <div style={{ color: '#F8FAFC', fontWeight: 700, fontSize: 15, marginBottom: 4 }}>AI Problem Generator</div>
+                                    <div style={{ color: '#94A3B8', fontSize: 13, marginBottom: 16 }}>This advanced AI feature is available on <strong>Growth</strong> and <strong>Pro</strong> plans.</div>
+                                    <button type="button" onClick={() => navigate('/pricing')} className="btn-gradient" style={{ padding: '8px 20px', fontSize: 13 }}>Upgrade Plan ✨</button>
+                                </div>
+                            )}
+
 
                             {/* Manual Fallback List */}
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -466,143 +482,148 @@ export default function CreateEventPage() {
                             </div>
                         </SectionCard>
                     </>
-                )}
+                )
+                }
 
                 {/* ─── Step 3: Prizes & Judges ─── */}
-                {step === 3 && (
-                    <>
-                        <SectionCard title="Prize Pool" icon={Trophy}>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-                                <Field label="Total Prize Pool (₹)">
-                                    <input type="number" className="input" placeholder="100000" {...register('prizeTotal')} />
-                                </Field>
-                                <Row cols={3}>
-                                    {[['1st', 'prize1', '50,000'], ['2nd', 'prize2', '25,000'], ['3rd', 'prize3', '10,000']].map(([rank, name, placeholder]) => (
-                                        <Field key={rank} label={`${rank} Prize (₹)`}>
-                                            <input type="number" className="input" placeholder={placeholder} {...register(name)} />
-                                        </Field>
-                                    ))}
-                                </Row>
-                            </div>
-                        </SectionCard>
+                {
+                    step === 3 && (
+                        <>
+                            <SectionCard title="Prize Pool" icon={Trophy}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+                                    <Field label="Total Prize Pool (₹)">
+                                        <input type="number" className="input" placeholder="100000" {...register('prizeTotal')} />
+                                    </Field>
+                                    <Row cols={3}>
+                                        {[['1st', 'prize1', '50,000'], ['2nd', 'prize2', '25,000'], ['3rd', 'prize3', '10,000']].map(([rank, name, placeholder]) => (
+                                            <Field key={rank} label={`${rank} Prize (₹)`}>
+                                                <input type="number" className="input" placeholder={placeholder} {...register(name)} />
+                                            </Field>
+                                        ))}
+                                    </Row>
+                                </div>
+                            </SectionCard>
 
-                        <SectionCard title="Judges" icon={Star}>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                                {judges.map((j, i) => (
-                                    <div key={i} style={{ display: 'flex', gap: 8 }}>
-                                        <input type="email" className="input" placeholder="judge@example.com" value={j}
-                                            onChange={e => { const a = [...judges]; a[i] = e.target.value; setJudges(a); }} />
-                                        {judges.length > 1 && (
-                                            <button type="button" onClick={() => setJudges(judges.filter((_, k) => k !== i))}
-                                                style={{ padding: '0 12px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, cursor: 'pointer', color: '#EF4444', flexShrink: 0 }}>
-                                                <Trash2 size={15} />
-                                            </button>
-                                        )}
-                                    </div>
-                                ))}
-                                <button type="button" onClick={() => setJudges([...judges, ''])}
-                                    style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 16px', background: 'rgba(59,130,246,0.1)', border: '1px dashed rgba(59,130,246,0.4)', borderRadius: 8, color: '#3B82F6', cursor: 'pointer', fontSize: 13, fontWeight: 600, alignSelf: 'flex-start' }}>
-                                    <Plus size={15} /> Add Judge
-                                </button>
-                            </div>
-                        </SectionCard>
-
-                        <SectionCard title="Judging Criteria" icon={Star}>
-                            <p style={{ color: '#64748B', fontSize: 13, marginBottom: 16 }}>
-                                Total weight must be 100%. Currently: <span style={{ color: totalWeight === 100 ? '#10B981' : '#EF4444', fontWeight: 700 }}>{totalWeight}%</span>
-                            </p>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                                {criteria.map((c, i) => (
-                                    <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 120px auto', gap: 8, alignItems: 'center' }}>
-                                        <input className="input" placeholder="Criterion name" value={c.name}
-                                            onChange={e => { const a = [...criteria]; a[i] = { ...a[i], name: e.target.value }; setCriteria(a); }} />
-                                        <div style={{ position: 'relative' }}>
-                                            <input type="number" className="input" value={c.weight} min={1} max={100}
-                                                onChange={e => { const a = [...criteria]; a[i] = { ...a[i], weight: Number(e.target.value) }; setCriteria(a); }}
-                                                style={{ paddingRight: 28 }} />
-                                            <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: '#64748B', fontSize: 13 }}>%</span>
+                            <SectionCard title="Judges" icon={Star}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                    {judges.map((j, i) => (
+                                        <div key={i} style={{ display: 'flex', gap: 8 }}>
+                                            <input type="email" className="input" placeholder="judge@example.com" value={j}
+                                                onChange={e => { const a = [...judges]; a[i] = e.target.value; setJudges(a); }} />
+                                            {judges.length > 1 && (
+                                                <button type="button" onClick={() => setJudges(judges.filter((_, k) => k !== i))}
+                                                    style={{ padding: '0 12px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, cursor: 'pointer', color: '#EF4444', flexShrink: 0 }}>
+                                                    <Trash2 size={15} />
+                                                </button>
+                                            )}
                                         </div>
-                                        {criteria.length > 1 && (
-                                            <button type="button" onClick={() => setCriteria(criteria.filter((_, k) => k !== i))}
-                                                style={{ padding: '0 12px', height: 44, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, cursor: 'pointer', color: '#EF4444', flexShrink: 0 }}>
-                                                <Trash2 size={15} />
-                                            </button>
-                                        )}
-                                    </div>
-                                ))}
-                                <button type="button" onClick={() => setCriteria([...criteria, { name: '', weight: 0 }])}
-                                    style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 16px', background: 'rgba(59,130,246,0.1)', border: '1px dashed rgba(59,130,246,0.4)', borderRadius: 8, color: '#3B82F6', cursor: 'pointer', fontSize: 13, fontWeight: 600, alignSelf: 'flex-start' }}>
-                                    <Plus size={15} /> Add Criterion
-                                </button>
-                            </div>
-                        </SectionCard>
+                                    ))}
+                                    <button type="button" onClick={() => setJudges([...judges, ''])}
+                                        style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 16px', background: 'rgba(59,130,246,0.1)', border: '1px dashed rgba(59,130,246,0.4)', borderRadius: 8, color: '#3B82F6', cursor: 'pointer', fontSize: 13, fontWeight: 600, alignSelf: 'flex-start' }}>
+                                        <Plus size={15} /> Add Judge
+                                    </button>
+                                </div>
+                            </SectionCard>
 
-                        <SectionCard title="Advanced Settings" icon={Settings}>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                                <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
-                                    <input type="checkbox" {...register('anonymousJudging')} style={{ width: 18, height: 18, accentColor: '#3B82F6' }} />
-                                    <span style={{ color: '#F8FAFC', fontSize: 14 }}>{ORGANIZER_CONFIG.labels.anonymousJudging}</span>
-                                </label>
-                                <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
-                                    <input type="checkbox" {...register('publicProjects')} style={{ width: 18, height: 18, accentColor: '#3B82F6' }} />
-                                    <span style={{ color: '#F8FAFC', fontSize: 14 }}>{ORGANIZER_CONFIG.labels.publicProjects}</span>
-                                </label>
-                            </div>
-                        </SectionCard>
-                    </>
-                )}
+                            <SectionCard title="Judging Criteria" icon={Star}>
+                                <p style={{ color: '#64748B', fontSize: 13, marginBottom: 16 }}>
+                                    Total weight must be 100%. Currently: <span style={{ color: totalWeight === 100 ? '#10B981' : '#EF4444', fontWeight: 700 }}>{totalWeight}%</span>
+                                </p>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                    {criteria.map((c, i) => (
+                                        <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 120px auto', gap: 8, alignItems: 'center' }}>
+                                            <input className="input" placeholder="Criterion name" value={c.name}
+                                                onChange={e => { const a = [...criteria]; a[i] = { ...a[i], name: e.target.value }; setCriteria(a); }} />
+                                            <div style={{ position: 'relative' }}>
+                                                <input type="number" className="input" value={c.weight} min={1} max={100}
+                                                    onChange={e => { const a = [...criteria]; a[i] = { ...a[i], weight: Number(e.target.value) }; setCriteria(a); }}
+                                                    style={{ paddingRight: 28 }} />
+                                                <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: '#64748B', fontSize: 13 }}>%</span>
+                                            </div>
+                                            {criteria.length > 1 && (
+                                                <button type="button" onClick={() => setCriteria(criteria.filter((_, k) => k !== i))}
+                                                    style={{ padding: '0 12px', height: 44, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, cursor: 'pointer', color: '#EF4444', flexShrink: 0 }}>
+                                                    <Trash2 size={15} />
+                                                </button>
+                                            )}
+                                        </div>
+                                    ))}
+                                    <button type="button" onClick={() => setCriteria([...criteria, { name: '', weight: 0 }])}
+                                        style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 16px', background: 'rgba(59,130,246,0.1)', border: '1px dashed rgba(59,130,246,0.4)', borderRadius: 8, color: '#3B82F6', cursor: 'pointer', fontSize: 13, fontWeight: 600, alignSelf: 'flex-start' }}>
+                                        <Plus size={15} /> Add Criterion
+                                    </button>
+                                </div>
+                            </SectionCard>
+
+                            <SectionCard title="Advanced Settings" icon={Settings}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+                                        <input type="checkbox" {...register('anonymousJudging')} style={{ width: 18, height: 18, accentColor: '#3B82F6' }} />
+                                        <span style={{ color: '#F8FAFC', fontSize: 14 }}>{ORGANIZER_CONFIG.labels.anonymousJudging}</span>
+                                    </label>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+                                        <input type="checkbox" {...register('publicProjects')} style={{ width: 18, height: 18, accentColor: '#3B82F6' }} />
+                                        <span style={{ color: '#F8FAFC', fontSize: 14 }}>{ORGANIZER_CONFIG.labels.publicProjects}</span>
+                                    </label>
+                                </div>
+                            </SectionCard>
+                        </>
+                    )
+                }
 
                 {/* ─── Step 4: Review ─── */}
-                {step === 4 && (
-                    <SectionCard title="Review Your Event" icon={Eye}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-                            {[
-                                { label: 'Event Name', value: formData.title },
-                                { label: 'Type', value: formData.type },
-                                { label: 'Mode', value: formData.mode },
-                                { label: 'Tagline', value: formData.tagline || '—' },
-                                { label: 'College', value: formData.college },
-                                { label: 'City', value: formData.city },
-                                { label: 'Start Date', value: formData.startDate ? new Date(formData.startDate).toLocaleString('en-IN') : '—' },
-                                { label: 'End Date', value: formData.endDate ? new Date(formData.endDate).toLocaleString('en-IN') : '—' },
-                                { label: 'Registration Deadline', value: formData.registrationDeadline ? new Date(formData.registrationDeadline).toLocaleString('en-IN') : '—' },
-                                { label: 'Max Team Size', value: formData.maxTeamSize },
-                                { label: 'Max Participants', value: formData.maxParticipants },
-                                { label: 'Prize Pool', value: formData.prizeTotal ? `₹${Number(formData.prizeTotal).toLocaleString()}` : '—' },
-                                { label: '1st/2nd/3rd Prize', value: `₹${formData.prize1 || 0} / ₹${formData.prize2 || 0} / ₹${formData.prize3 || 0}` },
-                                { label: 'Problem Statements', value: problemStatements.filter(Boolean).join(', ') || '—' },
-                                { label: 'Judges', value: judges.filter(Boolean).join(', ') || '—' },
-                                { label: 'Registration Mode', value: ORGANIZER_CONFIG.registrationModes.find(m => m.id === formData.registrationMode)?.label || 'Open' },
-                                { label: 'Anonymous Judging', value: formData.anonymousJudging ? 'Enabled' : 'Disabled' },
-                                { label: 'Public Projects Gallery', value: formData.publicProjects ? 'Enabled' : 'Disabled' },
-                            ].map(({ label, value }) => (
-                                <div key={label} style={{ display: 'flex', gap: 16, paddingBottom: 16, borderBottom: '1px solid #334155' }}>
-                                    <span style={{ color: '#64748B', fontSize: 13, fontWeight: 600, minWidth: 180 }}>{label}</span>
-                                    <span style={{ color: '#F8FAFC', fontSize: 14 }}>{value}</span>
-                                </div>
-                            ))}
-                        </div>
+                {
+                    step === 4 && (
+                        <SectionCard title="Review Your Event" icon={Eye}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                                {[
+                                    { label: 'Event Name', value: formData.title },
+                                    { label: 'Type', value: formData.type },
+                                    { label: 'Mode', value: formData.mode },
+                                    { label: 'Tagline', value: formData.tagline || '—' },
+                                    { label: 'College', value: formData.college },
+                                    { label: 'City', value: formData.city },
+                                    { label: 'Start Date', value: formData.startDate ? new Date(formData.startDate).toLocaleString('en-IN') : '—' },
+                                    { label: 'End Date', value: formData.endDate ? new Date(formData.endDate).toLocaleString('en-IN') : '—' },
+                                    { label: 'Registration Deadline', value: formData.registrationDeadline ? new Date(formData.registrationDeadline).toLocaleString('en-IN') : '—' },
+                                    { label: 'Max Team Size', value: formData.maxTeamSize },
+                                    { label: 'Max Participants', value: formData.maxParticipants },
+                                    { label: 'Prize Pool', value: formData.prizeTotal ? `₹${Number(formData.prizeTotal).toLocaleString()}` : '—' },
+                                    { label: '1st/2nd/3rd Prize', value: `₹${formData.prize1 || 0} / ₹${formData.prize2 || 0} / ₹${formData.prize3 || 0}` },
+                                    { label: 'Problem Statements', value: problemStatements.filter(Boolean).join(', ') || '—' },
+                                    { label: 'Judges', value: judges.filter(Boolean).join(', ') || '—' },
+                                    { label: 'Registration Mode', value: ORGANIZER_CONFIG.registrationModes.find(m => m.id === formData.registrationMode)?.label || 'Open' },
+                                    { label: 'Anonymous Judging', value: formData.anonymousJudging ? 'Enabled' : 'Disabled' },
+                                    { label: 'Public Projects Gallery', value: formData.publicProjects ? 'Enabled' : 'Disabled' },
+                                ].map(({ label, value }) => (
+                                    <div key={label} style={{ display: 'flex', gap: 16, paddingBottom: 16, borderBottom: '1px solid #334155' }}>
+                                        <span style={{ color: '#64748B', fontSize: 13, fontWeight: 600, minWidth: 180 }}>{label}</span>
+                                        <span style={{ color: '#F8FAFC', fontSize: 14 }}>{value}</span>
+                                    </div>
+                                ))}
+                            </div>
 
-                        <div style={{ display: 'flex', gap: 12, marginTop: 28 }}>
-                            <button
-                                onClick={() => publish('draft')}
-                                disabled={submitting}
-                                className="btn-outline"
-                                style={{ opacity: submitting ? 0.7 : 1, minHeight: 44 }}
-                            >
-                                Save as Draft
-                            </button>
-                            <button
-                                onClick={() => publish('published')}
-                                disabled={submitting}
-                                className="btn-gradient"
-                                style={{ opacity: submitting ? 0.7 : 1, minHeight: 44 }}
-                            >
-                                {submitting ? 'Publishing...' : '🚀 Publish Event'}
-                            </button>
-                        </div>
-                    </SectionCard>
-                )}
+                            <div style={{ display: 'flex', gap: 12, marginTop: 28 }}>
+                                <button
+                                    onClick={() => publish('draft')}
+                                    disabled={submitting}
+                                    className="btn-outline"
+                                    style={{ opacity: submitting ? 0.7 : 1, minHeight: 44 }}
+                                >
+                                    Save as Draft
+                                </button>
+                                <button
+                                    onClick={() => publish('published')}
+                                    disabled={submitting}
+                                    className="btn-gradient"
+                                    style={{ opacity: submitting ? 0.7 : 1, minHeight: 44 }}
+                                >
+                                    {submitting ? 'Publishing...' : '🚀 Publish Event'}
+                                </button>
+                            </div>
+                        </SectionCard>
+                    )
+                }
 
                 {/* Navigation */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 24 }}>
@@ -620,12 +641,12 @@ export default function CreateEventPage() {
                         </button>
                     )}
                 </div>
-            </div>
+            </div >
             <style>{`
         @media (max-width: 640px) {
           .step-label { display: none; }
         }
       `}</style>
-        </DashboardLayout>
+        </DashboardLayout >
     );
 }

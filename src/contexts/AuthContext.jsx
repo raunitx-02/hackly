@@ -122,10 +122,30 @@ export function AuthProvider({ children }) {
         setUserProfile(null);
     }
 
+    const hasFeature = (featureKey) => {
+        if (userProfile?.role === 'admin') return true;
+        const plan = userProfile?.currentPlan || 'Free / Trial';
+
+        // Feature Access Matrix
+        const matrix = {
+            'ai_generator': ['Growth', 'Institution Pro'],
+            'reliability_badges': ['Growth', 'Institution Pro'],
+            'campus_pulse': ['Growth', 'Institution Pro'],
+            'blind_judging': ['Growth', 'Institution Pro'],
+            'reports': ['Starter', 'Growth', 'Institution Pro'],
+            'advanced_analytics': ['Growth', 'Institution Pro'],
+            'pdf_certificates': ['Growth', 'Institution Pro'],
+        };
+
+        const allowedPlans = matrix[featureKey] || [];
+        return allowedPlans.includes(plan);
+    };
+
     const value = {
         currentUser,
         userProfile,
         isAdmin: userProfile?.role === 'admin',
+        hasFeature,
         loading,
         signup,
         login,
