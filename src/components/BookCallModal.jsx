@@ -50,12 +50,15 @@ export default function BookCallModal({ isOpen, onClose, source }) {
 
         setIsSubmitting(true);
         try {
+            const isDFY = source === 'dfy_pricing' || source === 'dfy_section';
+
             await addDoc(collection(db, 'demoRequests'), {
                 ...data,
                 eventTypes,
                 selectedDate,
                 selectedTimeSlot,
                 source,
+                interestType: isDFY ? 'DoneForYou' : 'StandardSaaS',
                 status: 'pending',
                 createdAt: serverTimestamp()
             });

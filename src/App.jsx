@@ -11,6 +11,7 @@ import DashboardPage from './pages/DashboardPage';
 import EventsPage from './pages/EventsPage';
 import CreateEventPage from './pages/CreateEventPage';
 import EventDetailPage from './pages/EventDetailPage';
+import CampusPulseFeedback from './pages/CampusPulseFeedback';
 import OrganizerEventDashboard from './pages/OrganizerEventDashboard';
 import PublicProjectsGallery from './pages/PublicProjectsGallery';
 import TeamsPage from './pages/TeamsPage';
@@ -36,6 +37,7 @@ import CompleteProfilePage from './pages/CompleteProfilePage';
 import AdminLayout from './pages/admin/AdminLayout';
 import AdminOverviewPage from './pages/admin/AdminOverviewPage';
 import AdminInstitutionsPage from './pages/admin/AdminInstitutionsPage';
+import AdminCampusPartnersPage from './pages/admin/AdminCampusPartnersPage';
 import AdminEventsPage from './pages/admin/AdminEventsPage';
 import AdminUsersPage from './pages/admin/AdminUsersPage';
 import AdminModerationPage from './pages/admin/AdminModerationPage';
@@ -53,6 +55,7 @@ export default function App() {
           <Route path="/complete-profile" element={<CompleteProfilePage />} />
           <Route path="/events" element={<EventsPage />} />
           <Route path="/events/:id" element={<EventDetailPage />} />
+          <Route path="/events/:id/feedback" element={<CampusPulseFeedback />} />
           <Route path="/events/:id/leaderboard" element={<LeaderboardPage />} />
           <Route path="/events/:id/projects" element={<PublicProjectsGallery />} />
           <Route path="/pricing" element={<PricingPage />} />
@@ -91,6 +94,7 @@ export default function App() {
           <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminLayout /></ProtectedRoute>}>
             <Route index element={<AdminOverviewPage />} />
             <Route path="institutions" element={<AdminInstitutionsPage />} />
+            <Route path="campus-partners" element={<AdminCampusPartnersPage />} />
             <Route path="events" element={<AdminEventsPage />} />
             <Route path="users" element={<AdminUsersPage />} />
             <Route path="moderation" element={<AdminModerationPage />} />

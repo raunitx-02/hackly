@@ -8,9 +8,11 @@ import DashboardLayout from '../components/DashboardLayout';
 import toast from 'react-hot-toast';
 import {
     CheckCircle, ChevronRight, ChevronLeft, Plus, Trash2,
-    CalendarDays, MapPin, Users, Trophy, Star, Eye, Settings,
+    CalendarDays, MapPin, Users, Trophy, Star, Eye, Settings, Sparkles, X, Activity
 } from 'lucide-react';
 import { ORGANIZER_CONFIG } from '../data/advancedOrganizerConfig';
+import { AI_GENERATOR_CONFIG } from '../data/aiGeneratorConfig';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 
 const STEPS = [
     { num: 1, label: 'Basic Info' },
@@ -91,6 +93,14 @@ import { BLOCKED_KEYWORDS } from '../data/adminBlockedKeywords';
 export default function CreateEventPage() {
     const [step, setStep] = useState(1);
     const [problemStatements, setProblemStatements] = useState(['']);
+
+    // AI Generator State
+    const [isAIPanelOpen, setIsAIPanelOpen] = useState(false);
+    const [aiLoading, setAiLoading] = useState(false);
+    const [aiForm, setAiForm] = useState({ board: 'cbse', class: 'ug_1', theme: '', difficulty: 'intermediate' });
+    const [aiStreams, setAiStreams] = useState([]); // Multiple stream selection
+    const [aiResults, setAiResults] = useState([]);
+
     const [judges, setJudges] = useState(['']);
     const [criteria, setCriteria] = useState([{ name: 'Innovation', weight: 25 }, { name: 'Technical', weight: 25 }, { name: 'UI/UX', weight: 25 }, { name: 'Presentation', weight: 25 }]);
     const [submitting, setSubmitting] = useState(false);
@@ -143,7 +153,7 @@ export default function CreateEventPage() {
                 registrationMode: data.registrationMode || 'open',
                 anonymousJudging: !!data.anonymousJudging,
                 publicProjects: !!data.publicProjects,
-                problemStatements: problemStatements.filter(Boolean),
+                problemStatements: problemStatements.filter(ps => ps && (typeof ps === 'string' ? ps.trim() : ps.title)),
                 prizes: { first: data.prize1 || '', second: data.prize2 || '', third: data.prize3 || '', total: data.prizeTotal || '' },
                 judges: judges.filter(Boolean),
                 judgingCriteria: criteria,
@@ -159,6 +169,58 @@ export default function CreateEventPage() {
         } finally {
             setSubmitting(false);
         }
+    };
+
+    const handleGenerateAI = async () => {
+        if (!aiForm.theme || aiStreams.length === 0) {
+            toast.error("Please enter a theme and select at least one stream/subject.");
+            return;
+        }
+        setAiLoading(true);
+        setAiResults([]);
+
+        try {
+            const functions = getFunctions();
+            const generateProblemStatements = httpsCallable(functions, 'generateProblemStatements');
+            const result = await generateProblemStatements({
+                board: AI_GENERATOR_CONFIG.boards.find(b => b.id === aiForm.board)?.label || aiForm.board,
+                classLevel: AI_GENERATOR_CONFIG.classes.find(c => c.id === aiForm.class)?.label || aiForm.class,
+                streams: aiStreams.map(sId => AI_GENERATOR_CONFIG.streams.find(s => s.id === sId)?.label),
+                theme: aiForm.theme,
+                difficulty: aiForm.difficulty
+            });
+
+            const generatedList = result.data.problems || [];
+            // Default select all
+            setAiResults(generatedList.map(p => ({ ...p, _selected: true })));
+            if (generatedList.length > 0) {
+                toast.success(`Generated ${generatedList.length} problem statements!`);
+            } else {
+                toast.error("AI returned 0 results. Try adjusting the prompt.");
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error("AI Generation Failed: " + error.message);
+        } finally {
+            setAiLoading(false);
+        }
+    };
+
+    const handleAddSelectedAIProblems = () => {
+        const selected = aiResults.filter(r => r._selected);
+        if (selected.length === 0) return;
+
+        const currentValid = problemStatements.filter(ps => typeof ps === 'string' ? ps.trim() : ps.title);
+        const merged = [...currentValid, ...selected];
+        // Remove the internal _selected flag before placing in main state
+        setProblemStatements(merged.map(item => {
+            const { _selected, ...rest } = item;
+            return typeof rest.title !== 'undefined' ? rest : rest; // It's an object now
+        }));
+
+        setAiResults([]);
+        setIsAIPanelOpen(false);
+        toast.success(`Added ${selected.length} AI problems to your event!`);
     };
 
     const totalWeight = criteria.reduce((s, c) => s + Number(c.weight || 0), 0);
@@ -262,11 +324,133 @@ export default function CreateEventPage() {
                         </SectionCard>
 
                         <SectionCard title="Problem Statements" icon={MapPin}>
+                            {/* AI Generator Panel Header */}
+                            <div style={{ padding: '16px', background: 'rgba(59,130,246,0.05)', borderRadius: 12, border: '1px solid rgba(59,130,246,0.2)', marginBottom: 24 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                        <div style={{ background: '#3B82F6', padding: 8, borderRadius: 8 }}>
+                                            <Sparkles size={18} color="white" />
+                                        </div>
+                                        <div>
+                                            <h4 style={{ color: '#F8FAFC', fontSize: 15, fontWeight: 700 }}>Generate problem statements with AI</h4>
+                                            <p style={{ color: '#94A3B8', fontSize: 12, marginTop: 2 }}>Auto-create structured syllabus-aware problems instantly.</p>
+                                        </div>
+                                    </div>
+                                    <button onClick={() => setIsAIPanelOpen(!isAIPanelOpen)} type="button" className="btn-outline" style={{ padding: '6px 14px', fontSize: 13, borderColor: 'rgba(59,130,246,0.5)', color: '#3B82F6' }}>
+                                        {isAIPanelOpen ? 'Close Panel' : 'Open AI Tool'}
+                                    </button>
+                                </div>
+
+                                {/* Expanded Form */}
+                                {isAIPanelOpen && (
+                                    <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                                        <Row cols={2}>
+                                            <Field label="Educational Board">
+                                                <select className="input" value={aiForm.board} onChange={e => setAiForm({ ...aiForm, board: e.target.value })}>
+                                                    {AI_GENERATOR_CONFIG.boards.map(b => <option key={b.id} value={b.id}>{b.label}</option>)}
+                                                </select>
+                                            </Field>
+                                            <Field label="Class / Year">
+                                                <select className="input" value={aiForm.class} onChange={e => setAiForm({ ...aiForm, class: e.target.value })}>
+                                                    {AI_GENERATOR_CONFIG.classes.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+                                                </select>
+                                            </Field>
+                                        </Row>
+
+                                        <div style={{ marginTop: 16 }}>
+                                            <Field label="Stream / Subjects (Multi-select) *">
+                                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+                                                    {AI_GENERATOR_CONFIG.streams.map(s => {
+                                                        const isSel = aiStreams.includes(s.id);
+                                                        return (
+                                                            <button key={s.id} type="button" onClick={() => setAiStreams(isSel ? aiStreams.filter(id => id !== s.id) : [...aiStreams, s.id])}
+                                                                style={{
+                                                                    padding: '6px 12px', borderRadius: 99, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                                                                    background: isSel ? '#3B82F6' : 'rgba(255,255,255,0.05)', border: isSel ? '1px solid #3B82F6' : '1px solid #334155', color: isSel ? 'white' : '#94A3B8', transition: '0.2s'
+                                                                }}>
+                                                                {s.label}
+                                                            </button>
+                                                        )
+                                                    })}
+                                                </div>
+                                            </Field>
+                                        </div>
+
+                                        <div style={{ marginTop: 16 }}>
+                                            <Field label="Theme / Core Idea *">
+                                                <input className="input" placeholder="e.g. Financial literacy, Sustainability, AI..." value={aiForm.theme} onChange={e => setAiForm({ ...aiForm, theme: e.target.value })} />
+                                            </Field>
+                                        </div>
+
+                                        <div style={{ marginTop: 16 }}>
+                                            <Field label="Difficulty">
+                                                <div style={{ display: 'flex', gap: 16, marginTop: 8 }}>
+                                                    {AI_GENERATOR_CONFIG.difficulties.map(d => (
+                                                        <label key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#CBD5E1', fontSize: 13, cursor: 'pointer' }}>
+                                                            <input type="radio" name="aiDifficulty" value={d.id} checked={aiForm.difficulty === d.id} onChange={e => setAiForm({ ...aiForm, difficulty: e.target.value })} style={{ accentColor: '#3B82F6', width: 16, height: 16 }} />
+                                                            {d.label}
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                            </Field>
+                                        </div>
+
+                                        <button onClick={handleGenerateAI} disabled={aiLoading} type="button" className="btn-gradient" style={{ width: '100%', justifyContent: 'center', marginTop: 24, padding: '12px', fontSize: 14 }}>
+                                            {aiLoading ? (
+                                                <><Activity size={18} className="animate-spin" /> Cooking Problem Statements...</>
+                                            ) : (
+                                                <><Sparkles size={18} /> Generate 5 Problem Statements</>
+                                            )}
+                                        </button>
+
+                                        {/* AI Selection Results */}
+                                        {aiResults.length > 0 && (
+                                            <div style={{ marginTop: 24, padding: 16, background: '#0F172A', borderRadius: 12, border: '1px solid #1E293B' }}>
+                                                <h5 style={{ color: '#F8FAFC', fontSize: 14, fontWeight: 700, marginBottom: 12 }}>Generated Proposals ({aiResults.length})</h5>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxHeight: 400, overflowY: 'auto', paddingRight: 4 }}>
+                                                    {aiResults.map((res, i) => (
+                                                        <div key={i} style={{ padding: 16, background: 'rgba(255,255,255,0.02)', borderRadius: 12, border: res._selected ? '1px solid #3B82F6' : '1px solid #334155', cursor: 'pointer' }} onClick={() => { const a = [...aiResults]; a[i]._selected = !a[i]._selected; setAiResults(a); }}>
+                                                            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                                                                <input type="checkbox" readOnly checked={res._selected} style={{ marginTop: 4, width: 16, height: 16, accentColor: '#3B82F6' }} />
+                                                                <div>
+                                                                    <div style={{ color: '#F8FAFC', fontWeight: 600, fontSize: 14, marginBottom: 4 }}>{res.title}</div>
+                                                                    <div style={{ color: '#94A3B8', fontSize: 13, lineHeight: 1.5, marginBottom: 8 }}>{res.description}</div>
+                                                                    {res.learningOutcomes && (
+                                                                        <div style={{ marginBottom: 6 }}>
+                                                                            <span style={{ fontSize: 11, color: '#64748B', fontWeight: 700, textTransform: 'uppercase' }}>Learning Outcomes:</span>
+                                                                            <ul style={{ paddingLeft: 16, marginTop: 4, color: '#CBD5E1', fontSize: 12 }}>
+                                                                                {res.learningOutcomes.map((lo, j) => <li key={j}>{lo}</li>)}
+                                                                            </ul>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                                <button onClick={handleAddSelectedAIProblems} type="button" className="btn-gradient" style={{ width: '100%', justifyContent: 'center', marginTop: 16 }}>
+                                                    <CheckCircle size={18} /> Add Selected to Event
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Manual Fallback List */}
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                                 {problemStatements.map((ps, i) => (
                                     <div key={i} style={{ display: 'flex', gap: 8 }}>
-                                        <input className="input" placeholder={`Problem Statement ${i + 1}`} value={ps}
-                                            onChange={e => { const a = [...problemStatements]; a[i] = e.target.value; setProblemStatements(a); }} />
+                                        {typeof ps === 'object' ? (
+                                            <div style={{ flex: 1, padding: 16, background: '#0F172A', borderRadius: 8, border: '1px solid #334155' }}>
+                                                <div style={{ color: '#3B82F6', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>AI Generated</div>
+                                                <div style={{ color: '#F8FAFC', fontWeight: 600, fontSize: 14, marginBottom: 4 }}>{ps.title}</div>
+                                                <div style={{ color: '#94A3B8', fontSize: 13 }}>{ps.description}</div>
+                                            </div>
+                                        ) : (
+                                            <input className="input" placeholder={`Problem Statement ${i + 1} (or paste custom text)`} value={ps}
+                                                onChange={e => { const a = [...problemStatements]; a[i] = e.target.value; setProblemStatements(a); }} />
+                                        )}
                                         {problemStatements.length > 1 && (
                                             <button type="button" onClick={() => setProblemStatements(problemStatements.filter((_, j) => j !== i))}
                                                 style={{ padding: '0 12px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, cursor: 'pointer', color: '#EF4444', flexShrink: 0 }}>
@@ -276,8 +460,8 @@ export default function CreateEventPage() {
                                     </div>
                                 ))}
                                 <button type="button" onClick={() => setProblemStatements([...problemStatements, ''])}
-                                    style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 16px', background: 'rgba(59,130,246,0.1)', border: '1px dashed rgba(59,130,246,0.4)', borderRadius: 8, color: '#3B82F6', cursor: 'pointer', fontSize: 13, fontWeight: 600, alignSelf: 'flex-start' }}>
-                                    <Plus size={15} /> Add Problem Statement
+                                    style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 16px', background: 'rgba(30,41,59,0.5)', border: '1px dashed #475569', borderRadius: 8, color: '#94A3B8', cursor: 'pointer', fontSize: 13, fontWeight: 600, alignSelf: 'flex-start' }}>
+                                    <Plus size={15} /> Add Manual Problem Statement
                                 </button>
                             </div>
                         </SectionCard>

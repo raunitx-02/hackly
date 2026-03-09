@@ -2,6 +2,8 @@ const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
+const axios = require('axios');
+const { GoogleGenAI } = require('@google/genai');
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -146,7 +148,6 @@ exports.moderateEventContent = functions.firestore
 /**
  * ─── CASHFREE PAYMENT INTEGRATION ───
  */
-const axios = require('axios');
 
 /**
  * Cloud Function: Create a Cashfree Order
@@ -249,6 +250,44 @@ exports.cashfreeWebhook = functions.https.onRequest(async (req, res) => {
         const payload = req.body;
         const eventType = payload.type;
 
+        console.log(`Received Cashfree Webhook: ${eventType}`);
+
+        if (eventType === 'PAYMENT_SUCCESS_WEBHOOK') {
+            const orderMeta = payload.data.order;
+            const orderId = orderMeta.order_id;
+            const planName = orderMeta.order_tags?.planName || 'Unknown Plan';
+            const uid = orderMeta.order_tags?.uid;
+
+            // 2. Mark payment successful in DB
+            await db.collection('payments').doc(orderId).update({
+                status: 'success',
+                transactionId: payload.data.payment.cf_payment_id,
+                verifiedAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+
+            // 3. Grant the subscription to the Organizer
+            if (uid) {
+                const role = planName.toLowerCase().includes('pro') ? 'admin' : 'organizer';
+                await db.collection('users').doc(uid).update({
+                    role: role,
+                    subscriptionStatus: 'active',
+                    currentPlan: planName,
+                    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+                });
+
+                // 4. Log the moderation/system activity
+                await db.collection('moderationLog').add({
+                    type: 'system',
+                    action: 'plan_purchased',
+                    entityId: uid,
+                    entityName: planName,
+                    reason: `Verified Cashfree Payment: ${payload.data.payment.cf_payment_id}`,
+                    performedBy: 'system',
+                    createdAt: admin.firestore.FieldValue.serverTimestamp()
+                });
+            }
+        }
+
         if (eventType === 'PAYMENT_SUCCESS_WEBHOOK') {
             const orderMeta = payload.data.order;
             const orderId = orderMeta.order_id;
@@ -292,3 +331,244 @@ exports.cashfreeWebhook = functions.https.onRequest(async (req, res) => {
         return res.status(500).send('Internal Server Error');
     }
 });
+
+
+/**
+ * ─── TELEGRAM NOTIFICATIONS INTEGRATION ───
+ */
+
+/**
+ * Helper to safely push messages to the Telegram Bot API
+ */
+async function sendTelegramNotification(messageText) {
+    const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+    const CHAT_ID = process.env.TELEGRAM_CHAT_ID;
+
+    if (!BOT_TOKEN || !CHAT_ID) {
+        console.log('Telegram credentials missing, skipping notification.');
+        return;
+    }
+
+    try {
+        const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+        await axios.post(url, {
+            chat_id: CHAT_ID,
+            text: messageText,
+            parse_mode: 'HTML'  // Allow basic bold/italics
+        });
+        console.log('Telegram notification sent successfully');
+    } catch (error) {
+        console.error('Failed to send Telegram notification:', error.message);
+    }
+}
+
+/**
+ * Trigger: On New Demo Request (Including DFY)
+ */
+exports.notifyOnNewDemoRequest = functions.firestore
+    .document('demoRequests/{docId}')
+    .onCreate(async (snap, context) => {
+        const data = snap.data();
+
+        let interestTag = 'Normal Platform Demo';
+        if (data.interestType === 'DoneForYou') {
+            interestTag = '🤯 ✨ Done-For-You Services Lead ✨ 🤯';
+        }
+
+        const msg = `
+🚨 <b>New Lead form submitted!</b>
+
+<b>Name:</b> ${data.name || 'N/A'}
+<b>Company/Institute:</b> ${data.companyName || 'N/A'}
+<b>Role:</b> ${data.role || 'N/A'}
+<b>Email:</b> ${data.email || 'N/A'}
+<b>Phone / WhatsApp:</b> ${data.phone || 'N/A'}
+
+<b>Requested Type:</b> ${interestTag}
+<b>Requested Events:</b> ${Array.isArray(data.eventTypes) ? data.eventTypes.join(', ') : 'None specified'}
+<b>Preferred Call Time:</b> ${data.selectedDate || 'Any'} @ ${data.selectedTimeSlot || 'Any'}
+`;
+        await sendTelegramNotification(msg);
+    });
+
+/**
+ * Trigger: On New Campus Partner Application
+ */
+exports.notifyOnNewCampusPartner = functions.firestore
+    .document('campusPartners/{docId}')
+    .onCreate(async (snap, context) => {
+        const data = snap.data();
+
+        const msg = `
+🎓 <b>New Campus Partner Application!</b>
+
+<b>Name:</b> ${data.name || 'N/A'}
+<b>College:</b> ${data.college || 'N/A'} (${data.cityState || 'N/A'})
+<b>Year/Course:</b> ${data.yearCourse || 'N/A'}
+<b>Campus Role:</b> ${data.role || 'N/A'}
+
+<b>Phone/WhatsApp:</b> ${data.phone || 'N/A'}
+<b>Email:</b> ${data.email || 'N/A'}
+
+<b>Clubs:</b> ${data.clubAffiliation || 'None'}
+<b>Their Plan:</b> 
+<i>"${data.promotionPlan || 'No plan given.'}"</i>
+`;
+        await sendTelegramNotification(msg);
+    });
+
+/**
+ * ─── GEMINI AI INTEGRATION ───
+ */
+
+/**
+ * Trigger: Callable function to generate syllabus-aware problem statements via Gemini
+ */
+exports.generateProblemStatements = functions.https.onCall(async (data, context) => {
+    // Only allow logged in organizers to generate problems
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'Endpoint requires authentication.');
+    }
+
+    const { board = 'Unknown', classLevel = 'Unknown', streams = [], theme = '', difficulty = 'Intermediate' } = data;
+    const apiKey = process.env.GEMINI_API_KEY;
+
+    // Gracefully handle missing key
+    if (!apiKey) {
+        throw new functions.https.HttpsError(
+            'failed-precondition',
+            'Gemini API Key is missing. Please ask the administrator to configure GEMINI_API_KEY in the Firebase Functions environments.'
+        );
+    }
+
+    try {
+        const ai = new GoogleGenAI({ apiKey });
+        const prompt = `You are an expert educational curriculum designer in India. Generate 5 highly relevant problem statements for a hackathon/event based on the following criteria:
+Board: ${board}
+Class/Year: ${classLevel}
+Stream(s): ${streams.join(', ')}
+Theme: ${theme}
+Difficulty: ${difficulty}
+
+Return ONLY a valid JSON array of 5 objects matching this exact schema:
+[
+  {
+     "title": "String, max 60 chars",
+     "description": "String, 2-4 lines explaining the exact problem to solve",
+     "learningOutcomes": ["Skill 1", "Skill 2"],
+     "suggestedCriteria": ["Innovation", "Technical Execution"]
+  }
+]`;
+
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+            }
+        });
+
+        let problems = [];
+        try {
+            problems = JSON.parse(response.text);
+        } catch (parseError) {
+            console.error('Failed to parse AI response', response.text);
+            throw new functions.https.HttpsError('internal', 'AI returned an unparseable response.');
+        }
+
+        return { problems };
+    } catch (error) {
+        console.error('AI Generator Error:', error);
+        throw new functions.https.HttpsError('internal', error.message || 'Unknown AI generation error');
+    }
+});
+
+/**
+ * ─── PARTICIPANT ENGAGEMENT (ANTI-GHOSTING) ───
+ */
+
+/**
+ * Trigger: On Registration Create/Update
+ * Computes `eventsRegistered` and `eventsCheckedIn`
+ */
+exports.updateEngagementOnRegistration = functions.firestore
+    .document('registrations/{regId}')
+    .onWrite(async (change, context) => {
+        const before = change.before.exists ? change.before.data() : null;
+        const after = change.after.exists ? change.after.data() : null;
+
+        if (!after && before) {
+            // Deletion: Decrement registered, and checkedIn if applicable
+            const userId = before.userId;
+            if (!userId) return null;
+
+            const decrementReg = admin.firestore.FieldValue.increment(-1);
+            const decrementCheck = before.isCheckedIn ? admin.firestore.FieldValue.increment(-1) : admin.firestore.FieldValue.increment(0);
+
+            return db.collection('users').doc(userId).set({
+                stats: { eventsRegistered: decrementReg, eventsCheckedIn: decrementCheck }
+            }, { merge: true });
+        }
+
+        const userId = after.userId;
+        if (!userId) return null;
+
+        let incReg = 0;
+        let incCheck = 0;
+
+        // New Registration
+        if (!before && after) {
+            incReg = 1;
+            if (after.isCheckedIn) incCheck = 1;
+        }
+        // Updated Registration
+        else if (before && after) {
+            if (!before.isCheckedIn && after.isCheckedIn) incCheck = 1;
+            if (before.isCheckedIn && !after.isCheckedIn) incCheck = -1;
+        }
+
+        if (incReg === 0 && incCheck === 0) return null;
+
+        return db.collection('users').doc(userId).set({
+            stats: {
+                eventsRegistered: admin.firestore.FieldValue.increment(incReg),
+                eventsCheckedIn: admin.firestore.FieldValue.increment(incCheck)
+            }
+        }, { merge: true });
+    });
+
+/**
+ * Trigger: On Submission Create
+ * Computes `projectsSubmitted` for all team members
+ */
+exports.updateEngagementOnSubmission = functions.firestore
+    .document('submissions/{subId}')
+    .onCreate(async (snap, context) => {
+        const data = snap.data();
+        let userIds = [];
+
+        // If it's a team submission, fetch team members
+        if (data.teamId) {
+            const teamDoc = await db.collection('teams').doc(data.teamId).get();
+            if (teamDoc.exists) {
+                const teamData = teamDoc.data();
+                userIds = [...new Set([teamData.leaderId, ...(teamData.members || [])])].filter(Boolean);
+            }
+        }
+        // Individual submission
+        else if (data.userId) {
+            userIds = [data.userId];
+        }
+
+        if (userIds.length === 0) return null;
+
+        const batch = db.batch();
+        userIds.forEach(uid => {
+            const userRef = db.collection('users').doc(uid);
+            batch.set(userRef, {
+                stats: { projectsSubmitted: admin.firestore.FieldValue.increment(1) }
+            }, { merge: true });
+        });
+
+        return batch.commit();
+    });

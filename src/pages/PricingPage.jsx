@@ -1,9 +1,12 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import PaymentService from '../services/PaymentService';
 import toast from 'react-hot-toast';
-import { CheckCircle, X } from 'lucide-react';
+import { CheckCircle, X, ArrowRight } from 'lucide-react';
 import { PRICING_PLANS, PRICING_NOTE, FEATURES_COMPARISON } from '../data/pricingConfig';
+import { DFY_CONFIG } from '../data/dfyConfig';
+import BookCallModal from '../components/BookCallModal';
 
 const Cell = ({ value }) => {
     if (value === true) return <div style={{ display: 'flex', justifyContent: 'center' }}><CheckCircle size={20} color="#10B981" /></div>;
@@ -14,6 +17,13 @@ const Cell = ({ value }) => {
 export default function PricingPage() {
     const { currentUser } = useAuth();
     const navigate = useNavigate();
+    const [isBookCallOpen, setIsBookCallOpen] = useState(false);
+    const [bookCallSource, setBookCallSource] = useState('');
+
+    const openBookCallModal = (source) => {
+        setBookCallSource(source);
+        setIsBookCallOpen(true);
+    };
 
     const handleSubscription = async (plan) => {
         // 1. If it's a "Book a call" plan, just redirect to contact/modal
@@ -96,7 +106,49 @@ export default function PricingPage() {
                         ))}
                     </div>
 
-                    <div style={{ textAlign: 'center', marginTop: 32, marginBottom: 40 }}>
+                    {/* DFY Pricing Card */}
+                    <div style={{
+                        marginTop: 40,
+                        background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(59, 130, 246, 0.1))',
+                        border: '1px solid rgba(16, 185, 129, 0.3)',
+                        borderRadius: 16,
+                        padding: 32,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        textAlign: 'center',
+                        maxWidth: 900,
+                        margin: '40px auto 0'
+                    }}>
+                        <div style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 8,
+                            padding: '4px 12px', borderRadius: 9999,
+                            background: 'rgba(16, 185, 129, 0.2)', border: '1px solid rgba(16, 185, 129, 0.4)',
+                            marginBottom: 16, color: '#34d399', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em'
+                        }}>
+                            Premium Service
+                        </div>
+                        <h2 style={{ fontSize: 28, fontWeight: 800, color: '#F8FAFC', marginBottom: 8 }}>{DFY_CONFIG.pricingCard.title}</h2>
+                        <p style={{ color: '#94A3B8', fontSize: 16, marginBottom: 24 }}>{DFY_CONFIG.pricingCard.subtitle}</p>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 16, width: '100%', marginBottom: 32, textAlign: 'left' }}>
+                            {DFY_CONFIG.pricingCard.bullets.map((bullet, i) => (
+                                <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                                    <CheckCircle size={18} color="#10B981" style={{ flexShrink: 0, marginTop: 2 }} />
+                                    <span style={{ color: '#CBD5E1', fontSize: 14, lineHeight: 1.5 }}>{bullet}</span>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+                            <div style={{ fontSize: 20, fontWeight: 700, color: '#F8FAFC' }}>{DFY_CONFIG.pricingCard.priceText}</div>
+                            <button onClick={() => openBookCallModal(DFY_CONFIG.pricingCard.ctaSource)} className="btn-gradient" style={{ padding: '14px 32px', fontSize: 16, display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                                {DFY_CONFIG.pricingCard.ctaText}
+                            </button>
+                        </div>
+                    </div>
+
+                    <div style={{ textAlign: 'center', marginTop: 40, marginBottom: 40 }}>
                         <p style={{ color: '#64748B', fontSize: 14, maxWidth: 600, margin: '0 auto', fontStyle: 'italic' }}>
                             {PRICING_NOTE}
                         </p>
@@ -135,6 +187,48 @@ export default function PricingPage() {
                         </table>
                     </div>
                 </div>
+
+                {/* DFY Detail Section */}
+                <section style={{ padding: '80px 0', background: 'rgba(15, 23, 42, 0.6)', borderTop: '1px solid #334155' }}>
+                    <div className="container">
+                        <div style={{ textAlign: 'center', marginBottom: 56 }}>
+                            <h2 style={{ fontSize: 'clamp(28px, 4vw, 36px)', fontWeight: 700, marginBottom: 16 }}>
+                                {DFY_CONFIG.detailSection.title}
+                            </h2>
+                            <p style={{ color: '#94A3B8', fontSize: 16, maxWidth: 640, margin: '0 auto' }}>
+                                {DFY_CONFIG.detailSection.subtitle}
+                            </p>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 24, marginBottom: 40 }}>
+                            {DFY_CONFIG.detailSection.cards.map((card, i) => (
+                                <div key={i} style={{
+                                    background: '#1E293B', borderRadius: 16, border: '1px solid #334155',
+                                    padding: '32px 24px', textAlign: 'center'
+                                }}>
+                                    <h3 style={{ fontSize: 20, fontWeight: 700, color: '#F8FAFC', marginBottom: 12 }}>{card.heading}</h3>
+                                    <p style={{ color: '#94A3B8', fontSize: 15, lineHeight: 1.6 }}>{card.text}</p>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div style={{
+                            background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.2)',
+                            borderRadius: 12, padding: '16px', textAlign: 'center', marginBottom: 40, maxWidth: 600, margin: '0 auto',
+                            color: '#60A5FA', fontSize: 15, fontWeight: 500
+                        }}>
+                            {DFY_CONFIG.detailSection.infoStripText}
+                        </div>
+
+                        <div style={{ textAlign: 'center' }}>
+                            <button onClick={() => openBookCallModal(DFY_CONFIG.detailSection.ctaSource)} className="btn-gradient" style={{ padding: '14px 36px', fontSize: 16, cursor: 'pointer' }}>
+                                {DFY_CONFIG.detailSection.ctaText}
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <BookCallModal isOpen={isBookCallOpen} onClose={() => setIsBookCallOpen(false)} source={bookCallSource} />
             </div>
         </div>
     );

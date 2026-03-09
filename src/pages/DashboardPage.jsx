@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { collection, query, where, onSnapshot, getDocs } from 'firebase/firestore';
+import { doc, collection, query, where, onSnapshot, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import DashboardLayout from '../components/DashboardLayout';
-import { CalendarDays, Users, Zap, DollarSign, Eye, Edit, Trash2, Plus, TrendingUp, Clock, Shield } from 'lucide-react';
+import { CalendarDays, Users, Zap, DollarSign, Eye, Edit, Trash2, Plus, TrendingUp, Clock, Shield, ShieldCheck } from 'lucide-react';
+import { calculateEngagementScore, getReliabilityTier } from '../lib/engagementHelpers';
 
 // ── Shared UI ────────────────────────────────────────────────────
 function StatCard({ label, value, icon: Icon, color, sub }) {
@@ -170,19 +171,33 @@ function ParticipantDashboard() {
     const { currentUser } = useAuth();
     const [registrations, setRegistrations] = useState([]);
     const [browseEvents, setBrowseEvents] = useState([]);
+    const [userStats, setUserStats] = useState({ eventsRegistered: 0, eventsCheckedIn: 0, projectsSubmitted: 0 });
 
     useEffect(() => {
         if (!currentUser) return;
+
+        // Listen to User Stats
+        const userUnsub = onSnapshot(doc(db, 'users', currentUser.uid), (docSnap) => {
+            if (docSnap.exists() && docSnap.data().stats) {
+                setUserStats(docSnap.data().stats);
+            }
+        });
+
         const q = query(collection(db, 'registrations'), where('userId', '==', currentUser.uid));
         const unsub = onSnapshot(q, (snap) => {
             setRegistrations(snap.docs.map(d => ({ id: d.id, ...d.data() })));
         });
+
         const eq = query(collection(db, 'events'), where('status', '==', 'published'));
-        onSnapshot(eq, (snap) => {
+        const evqUnsub = onSnapshot(eq, (snap) => {
             setBrowseEvents(snap.docs.map(d => ({ id: d.id, ...d.data() })).slice(0, 3));
         });
-        return unsub;
+
+        return () => { unsub(); userUnsub(); evqUnsub(); };
     }, [currentUser]);
+
+    const score = calculateEngagementScore(userStats);
+    const tier = getReliabilityTier(score, userStats.eventsRegistered);
 
     return (
         <div>
@@ -192,10 +207,34 @@ function ParticipantDashboard() {
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 32 }}>
-                <StatCard label="Registered Events" value={registrations.length} icon={CalendarDays} color="#3B82F6" />
-                <StatCard label="Active Teams" value={0} icon={Users} color="#8B5CF6" />
-                <StatCard label="Submissions" value={0} icon={Zap} color="#10B981" />
-                <StatCard label="Rank (Best)" value="—" icon={TrendingUp} color="#F59E0B" />
+                <StatCard label="Registered Events" value={userStats.eventsRegistered || 0} icon={CalendarDays} color="#3B82F6" />
+                <StatCard label="Events Attended" value={userStats.eventsCheckedIn || 0} icon={Users} color="#8B5CF6" />
+                <StatCard label="Projects Submitted" value={userStats.projectsSubmitted || 0} icon={Zap} color="#10B981" />
+
+                {/* Reliability Score Card */}
+                <div style={{
+                    background: '#1E293B', border: `1px solid ${tier.color}40`, borderRadius: 16, padding: '20px 24px',
+                    display: 'flex', alignItems: 'center', gap: 16, transition: 'all 0.2s', position: 'relative', overflow: 'hidden'
+                }}>
+                    <div style={{ position: 'absolute', top: 0, right: 0, width: 80, height: 80, background: tier.bg, borderRadius: '50%', filter: 'blur(30px)', transform: 'translate(20%, -20%)' }} />
+                    <div style={{
+                        width: 48, height: 48, borderRadius: 12, flexShrink: 0, zIndex: 1,
+                        background: tier.bg, border: `1px solid ${tier.color}40`,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                        <ShieldCheck size={22} color={tier.color} />
+                    </div>
+                    <div style={{ zIndex: 1 }}>
+                        <div style={{ fontSize: 24, fontWeight: 700, color: '#F8FAFC', lineHeight: 1.2, display: 'flex', alignItems: 'center', gap: 8 }}>
+                            {score}
+                            <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 99, background: tier.bg, color: tier.color, border: `1px solid ${tier.color}30` }}>
+                                {tier.label}
+                            </span>
+                        </div>
+                        <div style={{ color: '#94A3B8', fontSize: 13, fontWeight: 500 }}>Anti-Ghosting Score</div>
+                        <div style={{ color: '#64748B', fontSize: 11, marginTop: 2 }}>{tier.label === 'New User' ? 'Sign up for events!' : 'Keep showing up!'}</div>
+                    </div>
+                </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>

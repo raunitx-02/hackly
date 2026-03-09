@@ -44,8 +44,10 @@ import { PRICING_PLANS, PRICING_NOTE } from '../data/pricingConfig';
 import { HOW_IT_WORKS_STEPS } from '../data/howItWorksConfig';
 import { AUDIENCE_CARDS } from '../data/audienceConfig';
 import BookCallModal from '../components/BookCallModal';
+import CampusPartnerModal from '../components/CampusPartnerModal';
 import RotatingText from '../components/RotatingText';
 import { CTA_WORDS, CTA_ROTATION_INTERVAL } from '../data/ctaConfig';
+import { CAMPUS_PARTNER_CONFIG } from '../data/campusPartnerConfig';
 
 const TESTIMONIALS = [
     {
@@ -74,6 +76,7 @@ export default function LandingPage() {
     const statsRef = useRef(null);
     const [isBookCallOpen, setIsBookCallOpen] = useState(false);
     const [bookCallSource, setBookCallSource] = useState('');
+    const [isCampusPartnerOpen, setIsCampusPartnerOpen] = useState(false);
 
     const openBookCallModal = (source) => {
         setBookCallSource(source);
@@ -500,6 +503,62 @@ export default function LandingPage() {
                 </div>
             </section>
 
+            {/* ─── CAMPUS PARTNER PROGRAM ─── */}
+            <section id="campus-partners" className="section" style={{ background: '#0F172A', borderTop: '1px solid #1E293B', padding: '80px 0' }}>
+                <div className="container">
+                    <div style={{
+                        background: '#1E293B', borderRadius: 24, border: '1px solid #334155',
+                        padding: '48px', overflow: 'hidden', position: 'relative'
+                    }}>
+                        <div style={{
+                            position: 'absolute', top: 0, right: 0, width: '40%', height: '100%',
+                            background: 'radial-gradient(circle at top right, rgba(59,130,246,0.1) 0%, transparent 70%)',
+                            pointerEvents: 'none'
+                        }} />
+
+                        <div style={{ textAlign: 'center', marginBottom: 48 }}>
+                            <h2 style={{ fontSize: 'clamp(28px, 4vw, 36px)', fontWeight: 700, marginBottom: 16, color: '#F8FAFC' }}>
+                                {CAMPUS_PARTNER_CONFIG.section.title}
+                            </h2>
+                            <p style={{ color: '#94A3B8', fontSize: 16, maxWidth: 640, margin: '0 auto' }}>
+                                {CAMPUS_PARTNER_CONFIG.section.subtitle}
+                            </p>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 40, marginBottom: 48 }}>
+                            <div style={{ background: 'rgba(15,23,42,0.4)', borderRadius: 16, padding: 32, border: '1px solid #334155' }}>
+                                <h3 style={{ fontSize: 20, fontWeight: 700, color: '#F8FAFC', marginBottom: 20 }}>{CAMPUS_PARTNER_CONFIG.section.leftColumn.subheading}</h3>
+                                <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                                    {CAMPUS_PARTNER_CONFIG.section.leftColumn.bullets.map((b, i) => (
+                                        <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 16, color: '#CBD5E1', fontSize: 15, lineHeight: 1.5 }}>
+                                            <CheckCircle size={18} color="#3B82F6" style={{ marginTop: 2, flexShrink: 0 }} />
+                                            <span>{b}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                            <div style={{ background: 'rgba(15,23,42,0.4)', borderRadius: 16, padding: 32, border: '1px solid #334155' }}>
+                                <h3 style={{ fontSize: 20, fontWeight: 700, color: '#F8FAFC', marginBottom: 20 }}>{CAMPUS_PARTNER_CONFIG.section.rightColumn.subheading}</h3>
+                                <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                                    {CAMPUS_PARTNER_CONFIG.section.rightColumn.bullets.map((b, i) => (
+                                        <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 16, color: '#CBD5E1', fontSize: 15, lineHeight: 1.5 }}>
+                                            <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#8B5CF6', marginTop: 8, flexShrink: 0 }} />
+                                            <span>{b}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div style={{ textAlign: 'center' }}>
+                            <button onClick={() => setIsCampusPartnerOpen(true)} className="btn-gradient" style={{ padding: '16px 40px', fontSize: 16, cursor: 'pointer' }}>
+                                {CAMPUS_PARTNER_CONFIG.section.ctaText}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
 
 
             <style>{`
@@ -514,6 +573,7 @@ export default function LandingPage() {
       `}</style>
 
             <BookCallModal isOpen={isBookCallOpen} onClose={() => setIsBookCallOpen(false)} source={bookCallSource} />
+            <CampusPartnerModal isOpen={isCampusPartnerOpen} onClose={() => setIsCampusPartnerOpen(false)} />
         </div>
     );
 }

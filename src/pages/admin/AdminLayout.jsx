@@ -10,6 +10,7 @@ import toast from 'react-hot-toast';
 const ADMIN_NAV = [
     { icon: LayoutDashboard, label: 'Overview', path: '/admin' },
     { icon: Building2, label: 'Institutions', path: '/admin/institutions' },
+    { icon: Zap, label: 'Campus Partners', path: '/admin/campus-partners' },
     { icon: CalendarDays, label: 'Events', path: '/admin/events' },
     { icon: Users, label: 'Users & Blacklist', path: '/admin/users' },
     { icon: ShieldAlert, label: 'Moderation Log', path: '/admin/moderation' },

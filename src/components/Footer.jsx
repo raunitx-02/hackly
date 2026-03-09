@@ -61,6 +61,7 @@ export default function Footer() {
                                 { label: 'Blog', to: '/blog' },
                                 { label: 'Careers', to: '/careers' },
                                 { label: 'Contact', to: '/contact' },
+                                { label: 'Campus Partner Program', to: '/#campus-partners' },
                             ]
                         },
                         {

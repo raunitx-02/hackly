@@ -1,15 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { doc, collection, query, where, onSnapshot, getDocs, updateDoc } from 'firebase/firestore';
+import { doc, collection, query, where, onSnapshot, getDocs, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import DashboardLayout from '../components/DashboardLayout';
 import { ORGANIZER_CONFIG } from '../data/advancedOrganizerConfig';
 import toast from 'react-hot-toast';
-import { Users, FileText, Download, Check, X, Shield, Settings, Eye } from 'lucide-react';
+import { Users, FileText, Download, Check, X, Shield, Settings, Eye, Megaphone } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+import { calculateEngagementScore, getReliabilityTier } from '../lib/engagementHelpers';
 
 // Reusable Tab Button
 function TabButton({ label, active, onClick, icon: Icon }) {
@@ -29,12 +30,32 @@ function TabButton({ label, active, onClick, icon: Icon }) {
 
 function ApplicationsTab({ event }) {
     const [registrations, setRegistrations] = useState([]);
+    const [usersStats, setUsersStats] = useState({});
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const q = query(collection(db, 'registrations'), where('eventId', '==', event.id));
-        const unsub = onSnapshot(q, (snap) => {
-            setRegistrations(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+        const unsub = onSnapshot(q, async (snap) => {
+            const regs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            setRegistrations(regs);
+
+            // Fetch reliability stats for these users
+            const statsMap = {};
+            const userIds = [...new Set(regs.map(r => r.userId).filter(Boolean))];
+
+            for (const uid of userIds) {
+                // To avoid re-fetching on every snapshot, we check if we already have it
+                if (!usersStats[uid]) {
+                    const uDoc = await getDoc(doc(db, 'users', uid));
+                    if (uDoc.exists()) {
+                        statsMap[uid] = uDoc.data().stats || {};
+                    }
+                }
+            }
+
+            if (Object.keys(statsMap).length > 0) {
+                setUsersStats(prev => ({ ...prev, ...statsMap }));
+            }
             setLoading(false);
         });
         return unsub;
@@ -45,6 +66,13 @@ function ApplicationsTab({ event }) {
             await updateDoc(doc(db, 'registrations', regId), { status });
             toast.success(`Application ${status}`);
         } catch (err) { toast.error('Failed to update: ' + err.message); }
+    };
+
+    const toggleCheckIn = async (regId, currentVal) => {
+        try {
+            await updateDoc(doc(db, 'registrations', regId), { isCheckedIn: !currentVal });
+            toast.success(!currentVal ? 'Participant Checked-In!' : 'Check-In Removed');
+        } catch (err) { toast.error('Check-in failed: ' + err.message); }
     };
 
     if (loading) return <div style={{ padding: 40, color: '#94A3B8' }}>Loading applications...</div>;
@@ -58,7 +86,7 @@ function ApplicationsTab({ event }) {
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                 <thead style={{ background: 'rgba(255,255,255,0.02)' }}>
                     <tr style={{ borderBottom: '1px solid #334155' }}>
-                        <th style={{ padding: '16px 24px', color: '#94A3B8', fontSize: 12, fontWeight: 600 }}>User/Team ID</th>
+                        <th style={{ padding: '16px 24px', color: '#94A3B8', fontSize: 12, fontWeight: 600 }}>User ID & Reliability</th>
                         <th style={{ padding: '16px 24px', color: '#94A3B8', fontSize: 12, fontWeight: 600 }}>Motivation</th>
                         <th style={{ padding: '16px 24px', color: '#94A3B8', fontSize: 12, fontWeight: 600 }}>Skills</th>
                         <th style={{ padding: '16px 24px', color: '#94A3B8', fontSize: 12, fontWeight: 600 }}>Status</th>
@@ -66,30 +94,61 @@ function ApplicationsTab({ event }) {
                     </tr>
                 </thead>
                 <tbody>
-                    {registrations.map(reg => (
-                        <tr key={reg.id} style={{ borderBottom: '1px solid #334155' }}>
-                            <td style={{ padding: '16px 24px', color: '#F8FAFC', fontSize: 13 }}>{reg.userId?.slice(0, 8)}</td>
-                            <td style={{ padding: '16px 24px', color: '#94A3B8', fontSize: 13, maxWidth: 200, WebkitLineClamp: 2, display: '-webkit-box', WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{reg.applicationData?.motivation || '—'}</td>
-                            <td style={{ padding: '16px 24px', color: '#94A3B8', fontSize: 13 }}>{reg.applicationData?.skills || '—'}</td>
-                            <td style={{ padding: '16px 24px' }}>
-                                <span style={{
-                                    padding: '4px 10px', borderRadius: 99, fontSize: 11, fontWeight: 600, textTransform: 'uppercase',
-                                    background: reg.status === 'accepted' ? 'rgba(16,185,129,0.1)' : reg.status === 'rejected' ? 'rgba(239,68,68,0.1)' : 'rgba(245,158,11,0.1)',
-                                    color: reg.status === 'accepted' ? '#10B981' : reg.status === 'rejected' ? '#EF4444' : '#F59E0B'
-                                }}>{reg.status || 'pending'}</span>
-                            </td>
-                            <td style={{ padding: '16px 24px', display: 'flex', gap: 8 }}>
-                                <button onClick={() => updateStatus(reg.id, 'accepted')} title="Accept"
-                                    style={{ background: 'rgba(16,185,129,0.1)', border: 'none', color: '#10B981', padding: 6, borderRadius: 6, cursor: 'pointer' }}>
-                                    <Check size={16} />
-                                </button>
-                                <button onClick={() => updateStatus(reg.id, 'rejected')} title="Reject"
-                                    style={{ background: 'rgba(239,68,68,0.1)', border: 'none', color: '#EF4444', padding: 6, borderRadius: 6, cursor: 'pointer' }}>
-                                    <X size={16} />
-                                </button>
-                            </td>
-                        </tr>
-                    ))}
+                    {registrations.map(reg => {
+                        const userStat = usersStats[reg.userId] || { eventsRegistered: 0, eventsCheckedIn: 0, projectsSubmitted: 0 };
+                        const score = calculateEngagementScore(userStat);
+                        const tier = getReliabilityTier(score, userStat.eventsRegistered);
+
+                        return (
+                            <tr key={reg.id} style={{ borderBottom: '1px solid #334155' }}>
+                                <td style={{ padding: '16px 24px' }}>
+                                    <div style={{ color: '#F8FAFC', fontSize: 13, marginBottom: 6 }}>{reg.userId?.slice(0, 8)}</div>
+                                    <div
+                                        title={`Reg: ${userStat.eventsRegistered} | Checked-in: ${userStat.eventsCheckedIn} | Submitted: ${userStat.projectsSubmitted}`}
+                                        style={{
+                                            display: 'inline-block', padding: '4px 8px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+                                            background: tier.bg, color: tier.color, border: `1px solid ${tier.color}30`, cursor: 'help'
+                                        }}>
+                                        {tier.label} ({score})
+                                    </div>
+                                </td>
+                                <td style={{ padding: '16px 24px', color: '#94A3B8', fontSize: 13, maxWidth: 200, WebkitLineClamp: 2, display: '-webkit-box', WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{reg.applicationData?.motivation || '—'}</td>
+                                <td style={{ padding: '16px 24px', color: '#94A3B8', fontSize: 13 }}>{reg.applicationData?.skills || '—'}</td>
+                                <td style={{ padding: '16px 24px' }}>
+                                    <span style={{
+                                        padding: '4px 10px', borderRadius: 99, fontSize: 11, fontWeight: 600, textTransform: 'uppercase',
+                                        background: reg.status === 'accepted' ? 'rgba(16,185,129,0.1)' : reg.status === 'rejected' ? 'rgba(239,68,68,0.1)' : 'rgba(245,158,11,0.1)',
+                                        color: reg.status === 'accepted' ? '#10B981' : reg.status === 'rejected' ? '#EF4444' : '#F59E0B'
+                                    }}>{reg.status || 'pending'}</span>
+                                    {reg.isCheckedIn && (
+                                        <div style={{ marginTop: 8, fontSize: 11, color: '#10B981', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                            <Check size={12} /> Present
+                                        </div>
+                                    )}
+                                </td>
+                                <td style={{ padding: '16px 24px', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                                    <button onClick={() => updateStatus(reg.id, 'accepted')} title="Accept"
+                                        style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', color: '#10B981', padding: 6, borderRadius: 6, cursor: 'pointer' }}>
+                                        <Check size={16} />
+                                    </button>
+                                    <button onClick={() => updateStatus(reg.id, 'rejected')} title="Reject"
+                                        style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#EF4444', padding: 6, borderRadius: 6, cursor: 'pointer' }}>
+                                        <X size={16} />
+                                    </button>
+                                    <div style={{ width: 1, height: 24, background: '#334155', margin: '0 4px' }} />
+                                    <button onClick={() => toggleCheckIn(reg.id, reg.isCheckedIn)}
+                                        style={{
+                                            background: reg.isCheckedIn ? 'rgba(16,185,129,0.1)' : 'rgba(59,130,246,0.1)',
+                                            border: `1px solid ${reg.isCheckedIn ? 'rgba(16,185,129,0.4)' : 'rgba(59,130,246,0.4)'}`,
+                                            color: reg.isCheckedIn ? '#10B981' : '#3B82F6',
+                                            padding: '6px 10px', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4
+                                        }}>
+                                        {reg.isCheckedIn ? 'Checked-In' : 'Mark Check-In'}
+                                    </button>
+                                </td>
+                            </tr>
+                        );
+                    })}
                     {registrations.length === 0 && <tr><td colSpan="5" style={{ padding: 40, textAlign: 'center', color: '#64748B' }}>No applications found.</td></tr>}
                 </tbody>
             </table>
@@ -172,6 +231,96 @@ function JudgesTab({ event }) {
     );
 }
 
+function CampusPulseTab({ event }) {
+    const [feedback, setFeedback] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const q = query(collection(db, 'eventFeedback'), where('eventId', '==', event.id));
+        const unsub = onSnapshot(q, (snap) => {
+            setFeedback(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+            setLoading(false);
+        });
+        return unsub;
+    }, [event.id]);
+
+    if (loading) return <div style={{ padding: 40, color: '#94A3B8' }}>Loading Pulse Data...</div>;
+
+    const total = feedback.length;
+    if (total === 0) {
+        return (
+            <div style={{ background: '#1E293B', padding: 40, borderRadius: 16, border: '1px solid #334155', textAlign: 'center' }}>
+                <Megaphone size={40} color="#64748B" style={{ margin: '0 auto 16px' }} />
+                <h3 style={{ color: '#F8FAFC', fontSize: 16, marginBottom: 8 }}>No Feedback Yet</h3>
+                <p style={{ color: '#94A3B8', fontSize: 14, marginBottom: 16 }}>Share your feedback link with students to get anonymous analytics.</p>
+                <div style={{ background: 'rgba(0,0,0,0.2)', padding: '12px', borderRadius: 8, display: 'inline-block', border: '1px dashed #475569', color: '#3B82F6', fontSize: 13, userSelect: 'all' }}>
+                    {window.location.origin}/events/{event.id}/feedback
+                </div>
+            </div>
+        );
+    }
+
+    const avgSkill = (feedback.reduce((sum, f) => sum + f.skillConfidence, 0) / total).toFixed(1);
+    const avgRating = (feedback.reduce((sum, f) => sum + f.organizerRating, 0) / total).toFixed(1);
+    const wantMorePct = Math.round((feedback.filter(f => f.wantMoreEvents).length / total) * 100);
+
+    return (
+        <div>
+            {/* Header info / Link */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, padding: 16, background: 'rgba(59,130,246,0.1)', borderRadius: 12, border: '1px solid rgba(59,130,246,0.2)' }}>
+                <div>
+                    <div style={{ color: '#F8FAFC', fontWeight: 600, fontSize: 15, marginBottom: 4 }}>Collect Anonymous Feedback</div>
+                    <div style={{ color: '#94A3B8', fontSize: 13 }}>Share this link at the end of your event to gather insights.</div>
+                </div>
+                <div style={{ background: '#0F172A', padding: '8px 12px', borderRadius: 8, border: '1px solid #334155', color: '#60A5FA', fontSize: 12, userSelect: 'all', cursor: 'pointer' }} onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/events/${event.id}/feedback`); toast.success("Copied link!"); }}>
+                    {window.location.origin}/events/{event.id}/feedback
+                </div>
+            </div>
+
+            {/* Top Cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 32 }}>
+                <div style={{ background: '#1E293B', padding: 20, borderRadius: 16, border: '1px solid rgba(16,185,129,0.4)' }}>
+                    <div style={{ color: '#10B981', fontSize: 28, fontWeight: 800 }}>{avgSkill} <span style={{ fontSize: 14 }}>/ 5</span></div>
+                    <div style={{ color: '#94A3B8', fontSize: 13, fontWeight: 600, marginTop: 4 }}>Skill Confidence</div>
+                </div>
+                <div style={{ background: '#1E293B', padding: 20, borderRadius: 16, border: '1px solid rgba(59,130,246,0.4)' }}>
+                    <div style={{ color: '#3B82F6', fontSize: 28, fontWeight: 800 }}>{avgRating} <span style={{ fontSize: 14 }}>/ 5</span></div>
+                    <div style={{ color: '#94A3B8', fontSize: 13, fontWeight: 600, marginTop: 4 }}>Overall Rating</div>
+                </div>
+                <div style={{ background: '#1E293B', padding: 20, borderRadius: 16, border: '1px solid rgba(139,92,246,0.4)' }}>
+                    <div style={{ color: '#8B5CF6', fontSize: 28, fontWeight: 800 }}>{wantMorePct}%</div>
+                    <div style={{ color: '#94A3B8', fontSize: 13, fontWeight: 600, marginTop: 4 }}>Want More Events</div>
+                </div>
+                <div style={{ background: '#1E293B', padding: 20, borderRadius: 16, border: '1px solid rgba(245,158,11,0.4)' }}>
+                    <div style={{ color: '#F59E0B', fontSize: 28, fontWeight: 800 }}>{total}</div>
+                    <div style={{ color: '#94A3B8', fontSize: 13, fontWeight: 600, marginTop: 4 }}>Total Responses</div>
+                </div>
+            </div>
+
+            {/* Comments List */}
+            <div style={{ background: '#1E293B', borderRadius: 16, border: '1px solid #334155', overflow: 'hidden' }}>
+                <div style={{ padding: '16px 20px', borderBottom: '1px solid #334155' }}>
+                    <h3 style={{ fontSize: 16, fontWeight: 700, color: '#F8FAFC' }}>Open Comments</h3>
+                </div>
+                <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    {feedback.filter(f => f.openComment && f.openComment.trim() !== '').length === 0 ? (
+                        <div style={{ color: '#64748B', fontSize: 14 }}>No written comments yet.</div>
+                    ) : (
+                        feedback.filter(f => f.openComment && f.openComment.trim() !== '').map((f, i) => (
+                            <div key={i} style={{ background: 'rgba(255,255,255,0.03)', padding: 16, borderRadius: 12, border: '1px solid #334155' }}>
+                                <div style={{ color: '#F8FAFC', fontSize: 14, lineHeight: 1.6 }}>"{f.openComment}"</div>
+                                <div style={{ color: '#64748B', fontSize: 11, marginTop: 8 }}>
+                                    Rating: {f.organizerRating}/5 · Confidence: {f.skillConfidence}/5
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export default function OrganizerEventDashboard() {
     const { id } = useParams();
     const { currentUser } = useAuth();
@@ -201,6 +350,7 @@ export default function OrganizerEventDashboard() {
         { id: 'applications', label: ORGANIZER_CONFIG.labels.applications, icon: Users },
         { id: 'reports', label: ORGANIZER_CONFIG.labels.reports, icon: FileText },
         { id: 'judges', label: ORGANIZER_CONFIG.labels.judges, icon: Shield },
+        { id: 'pulse', label: 'Campus Pulse', icon: Megaphone },
     ];
 
     return (
@@ -231,6 +381,7 @@ export default function OrganizerEventDashboard() {
             {tab === 'applications' && <ApplicationsTab event={event} />}
             {tab === 'reports' && <ReportsTab event={event} />}
             {tab === 'judges' && <JudgesTab event={event} />}
+            {tab === 'pulse' && <CampusPulseTab event={event} />}
 
         </DashboardLayout>
     );
