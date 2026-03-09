@@ -1,31 +1,29 @@
 import { httpsCallable, functions } from '../lib/firebase';
 import toast from 'react-hot-toast';
+import { load } from '@cashfreepayments/cashfree-js';
 
 /**
  * PaymentService
  * 
- * Handles the logic for triggering Razorpay checkout.
+ * Handles the logic for triggering Cashfree checkout.
  */
 const PaymentService = {
+    cashfree: null,
+
     /**
-     * Loads the Razorpay Checkout script dynamically
+     * Initializes the Cashfree SDK
      */
-    loadRazorpayScript: () => {
-        return new Promise((resolve) => {
-            if (window.Razorpay) {
-                resolve(true);
-                return;
-            }
-            const script = document.createElement('script');
-            script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-            script.onload = () => resolve(true);
-            script.onerror = () => resolve(false);
-            document.body.appendChild(script);
-        });
+    initializeCashfree: async () => {
+        if (!PaymentService.cashfree) {
+            PaymentService.cashfree = await load({
+                mode: "sandbox", // Switch to "production" when going live
+            });
+        }
+        return PaymentService.cashfree;
     },
 
     /**
-     * Triggers the full payment flow
+     * Triggers the full payment flow via Cashfree
      */
     processSubscription: async (user, plan) => {
         if (!user) {
@@ -33,87 +31,60 @@ const PaymentService = {
             return;
         }
 
-        const isLoaded = await PaymentService.loadRazorpayScript();
-        if (!isLoaded) {
-            toast.error('Failed to load payment gateway. Please check your internet.');
-            return;
-        }
-
-        const loadingToast = toast.loading('Initiating secure payment...');
+        const loadingToast = toast.loading('Securely initiating Cashfree payment...');
 
         try {
-            // 1. Call Cloud Function to create Razorpay Order
-            const createOrderFn = httpsCallable(functions, 'createRazorpayOrder');
+            // 1. Initialize Cashfree Web SDK
+            const cashfree = await PaymentService.initializeCashfree();
+
+            // 2. Call Cloud Function to create Cashfree Order securely
+            const createOrderFn = httpsCallable(functions, 'createCashfreeOrder');
             const amount = parseInt(plan.price.replace(/[^\d]/g, ''));
 
             const { data: orderData } = await createOrderFn({
                 planName: plan.name,
-                amount: amount
+                amount: amount,
+                customerName: user.displayName || "Organizer",
+                customerPhone: "9999999999" // Can be captured from user profile in the future
             });
 
             toast.dismiss(loadingToast);
 
-            // 2. Open Razorpay Modal
-            const options = {
-                key: orderData.keyId,
-                amount: orderData.amount,
-                currency: orderData.currency,
-                name: "Hackly Platform",
-                description: `Subscription: ${plan.name}`,
-                order_id: orderData.orderId,
-                handler: async (response) => {
-                    // This is called when payment is successful on Razorpay's end
-                    await PaymentService.verifyPayment(response, plan.name);
-                },
-                prefill: {
-                    name: user.displayName || '',
-                    email: user.email || '',
-                },
-                theme: {
-                    color: "#3B82F6",
-                }
+            // 3. Open Cashfree Checkout Modal using the returned Payment Session ID
+            let checkoutOptions = {
+                paymentSessionId: orderData.paymentSessionId,
+                redirectTarget: "_modal", // Open as a pop-up overlay rather than completely redirecting tab
             };
 
-            const rzp = new window.Razorpay(options);
+            cashfree.checkout(checkoutOptions).then((result) => {
+                if (result.error) {
+                    // This will be true whenever user clicks on close icon inside the modal or any error happens during payment
+                    console.error("Cashfree Checkout Error:", result.error);
+                    toast.error(result.error.message || "Payment cancelled or failed.");
+                }
+                if (result.redirect) {
+                    // This will be true if the payment redirect page couldn't be opened in an iframe
+                    console.log("Payment will be redirected");
+                }
+                if (result.paymentDetails) {
+                    // This will be called whenever the payment is completed irrespective of transaction status
+                    console.log("Payment completed details:", result.paymentDetails);
+                    toast.loading("Payment complete! Waiting for secure server verification...");
 
-            rzp.on('payment.failed', function (response) {
-                toast.error(`Payment Failed: ${response.error.description}`);
+                    // The backend cashfreeWebhook will verify the payment asynchronously.
+                    // We can poll the backend, or simply instruct the user to refresh.
+                    setTimeout(() => {
+                        toast.dismiss();
+                        toast.success("Subscription should now be active! Refresh the page if you don't see it.");
+                        window.location.reload();
+                    }, 4000);
+                }
             });
 
-            rzp.open();
-
         } catch (error) {
-            console.error('Payment Error:', error);
+            console.error('Cashfree Payment Error:', error);
             toast.dismiss(loadingToast);
             toast.error(error.message || 'Payment initiation failed.');
-        }
-    },
-
-    /**
-     * Calls the verification Cloud Function
-     */
-    verifyPayment: async (razorpayResponse, planName) => {
-        const verifyingToast = toast.loading('Verifying payment signature...');
-
-        try {
-            const verifyFn = httpsCallable(functions, 'verifyRazorpayPayment');
-            const { data: result } = await verifyFn({
-                razorpay_order_id: razorpayResponse.razorpay_order_id,
-                razorpay_payment_id: razorpayResponse.razorpay_payment_id,
-                razorpay_signature: razorpayResponse.razorpay_signature,
-                planName: planName
-            });
-
-            toast.dismiss(verifyingToast);
-
-            if (result.success) {
-                toast.success('Subscription active! Welcome to Hackly Premium.');
-                // Profile refresh is handled by AuthContext as it listens to changes
-            }
-        } catch (error) {
-            console.error('Verification Error:', error);
-            toast.dismiss(verifyingToast);
-            toast.error('Payment verified by bank but failed verification on our server. Contact support.');
         }
     }
 };
