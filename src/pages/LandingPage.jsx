@@ -3,8 +3,12 @@ import { Link } from 'react-router-dom';
 import {
     Zap, CalendarDays, Users, FileText, Star, BarChart3, Handshake,
     ArrowRight, CheckCircle, Play, ChevronRight, Twitter, Linkedin,
-    Github, Mail, Code2, Trophy,
+    Github, Mail, Code2, Trophy, PlusCircle
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import PaymentService from '../services/PaymentService';
+import toast from 'react-hot-toast';
 
 // Count-up hook
 function useCountUp(target, duration = 2000, start = false) {
@@ -39,7 +43,6 @@ const STEPS = [
     { num: '03', title: 'Judge & Announce', desc: 'Judges score projects in parallel; live leaderboard reveals winners automatically.', icon: Trophy },
 ];
 
-import { PlusCircle } from 'lucide-react';
 import { PRICING_PLANS, PRICING_NOTE } from '../data/pricingConfig';
 import { HOW_IT_WORKS_STEPS } from '../data/howItWorksConfig';
 import { AUDIENCE_CARDS } from '../data/audienceConfig';
@@ -77,10 +80,27 @@ export default function LandingPage() {
     const [isBookCallOpen, setIsBookCallOpen] = useState(false);
     const [bookCallSource, setBookCallSource] = useState('');
     const [isCampusPartnerOpen, setIsCampusPartnerOpen] = useState(false);
+    const { currentUser } = useAuth();
+    const navigate = useNavigate();
 
     const openBookCallModal = (source) => {
         setBookCallSource(source);
         setIsBookCallOpen(true);
+    };
+
+    const handleSubscription = async (plan) => {
+        if (plan.ctaLink === '/contact' || plan.name === 'Institution Pro') {
+            navigate('/contact');
+            return;
+        }
+
+        if (!currentUser) {
+            toast.error('Please login to subscribe to a plan');
+            navigate('/auth?mode=signup&redirect=/pricing');
+            return;
+        }
+
+        await PaymentService.processSubscription(currentUser, plan);
     };
 
     useEffect(() => {
@@ -463,13 +483,13 @@ export default function LandingPage() {
                                         </div>
                                     ))}
                                 </div>
-                                <Link
-                                    to={plan.ctaLink}
+                                <button
+                                    onClick={() => handleSubscription(plan)}
                                     className={plan.highlighted ? 'btn-gradient' : 'btn-outline'}
-                                    style={{ width: '100%', textAlign: 'center', textDecoration: 'none', display: 'block', minHeight: 44, lineHeight: '20px', marginTop: 'auto' }}
+                                    style={{ width: '100%', textAlign: 'center', cursor: 'pointer', display: 'block', minHeight: 44, lineHeight: '20px', marginTop: 'auto' }}
                                 >
                                     {plan.cta}
-                                </Link>
+                                </button>
                             </div>
                         ))}
                     </div>
