@@ -145,7 +145,45 @@ exports.moderateEventContent = functions.firestore
         return null;
     });
 
-// ─── PAYMENT INTEGRATION (RAZORPAY) ───
+/**
+ * Cloud Function: Activate Free Tier (No payment required)
+ */
+exports.activateFreeTier = functions.region('us-central1').https.onCall(async (data, context) => {
+    console.log('[Free Tier] activateFreeTier Invoked');
+    
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'Login required.');
+    }
+
+    const { planName } = data;
+
+    try {
+        // Log the activation
+        await db.collection('payments').add({
+            uid: context.auth.uid,
+            planName: planName,
+            status: 'free_activated',
+            amount: 0,
+            createdAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+
+        // Update user role to organizer for free tier
+        // (Assuming Free plan grants 'organizer' role to allow creating at least 1 event)
+        await db.collection('users').doc(context.auth.uid).update({
+            role: 'organizer',
+            subscriptionStatus: 'active',
+            currentPlan: planName,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+
+        console.log(`[Free Tier] Activated for ${context.auth.uid}`);
+        return { success: true };
+
+    } catch (error) {
+        console.error('[Free Tier] Activation Error:', error);
+        throw new functions.https.HttpsError('internal', 'Activation failed.');
+    }
+});
 
 /**
  * Cloud Function: Create a Razorpay Order

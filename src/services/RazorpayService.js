@@ -31,13 +31,40 @@ class RazorpayService {
      */
     async processSubscription(user, plan) {
         try {
-            console.log('[RazorpayService] Initiating subscription for:', plan.name);
+            console.log('[RazorpayService] Initiating plan selection for:', plan.name);
             
-            // 1. Load Razorpay Script
+            // 1. Handle Free Tier Skip
+            if (plan.priceValue === 0) {
+                const loadingToast = toast.loading('Setting up your free plan...');
+                
+                // We'll call the backend to update the role to 'organizer' even for free
+                try {
+                    const { getFunctions, httpsCallable } = await import('firebase/functions');
+                    const functions = getFunctions(undefined, 'us-central1');
+                    const activateFreeTier = httpsCallable(functions, 'activateFreeTier');
+                    await activateFreeTier({ planName: plan.name });
+                    
+                    toast.dismiss(loadingToast);
+                    toast.success('Free plan activated!');
+                    
+                    setTimeout(() => {
+                        window.location.href = `/payment-success?plan=${encodeURIComponent(plan.name)}`;
+                    }, 1000);
+                    return;
+                } catch (error) {
+                    toast.dismiss(loadingToast);
+                    console.error('[RazorpayService] Free Activation Failed:', error);
+                    // Still redirect if it's just a role update delay
+                    window.location.href = `/payment-success?plan=${encodeURIComponent(plan.name)}`;
+                    return;
+                }
+            }
+
+            // 2. Load Razorpay Script for Paid Plans
             const loaded = await this.loadScript();
             if (!loaded) return;
 
-            // 2. Call Cloud Function to create Order
+            // 3. Call Cloud Function to create Order
             const { getFunctions, httpsCallable } = await import('firebase/functions');
             const functions = getFunctions(undefined, 'us-central1');
             const createOrder = httpsCallable(functions, 'createRazorpayOrder');
@@ -47,16 +74,16 @@ class RazorpayService {
             try {
                 const response = await createOrder({
                     planName: plan.name,
-                    amount: plan.priceValue || 500, // Fallback if priceValue not in config
-                    amountInPaise: (plan.priceValue || 500) * 100
+                    amount: plan.priceValue,
+                    amountInPaise: plan.priceValue * 100
                 });
 
                 const { orderId, amount, currency, key } = response.data;
                 toast.dismiss(loadingToast);
 
-                // 3. Open Razorpay Checkout Modal
+                // 4. Open Razorpay Checkout Modal
                 const options = {
-                    key: key, // This will be the Public Key ID from your dashboard
+                    key: key,
                     amount: amount,
                     currency: currency,
                     name: 'Hackly',
