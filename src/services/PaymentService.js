@@ -75,9 +75,8 @@ const PaymentService = {
                     // We can poll the backend, or simply instruct the user to refresh.
                     setTimeout(() => {
                         toast.dismiss();
-                        toast.success("Subscription should now be active! Refresh the page if you don't see it.");
-                        window.location.reload();
-                    }, 4000);
+                        window.location.href = `/payment-success?plan=${encodeURIComponent(plan.name)}`;
+                    }, 2000);
                 }
             });
 

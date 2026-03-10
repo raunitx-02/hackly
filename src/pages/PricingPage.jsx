@@ -35,7 +35,7 @@ export default function PricingPage() {
         // 2. If user not logged in, redirect to signup
         if (!currentUser) {
             toast.error('Please login to subscribe to a plan');
-            navigate('/auth?mode=signup');
+            navigate('/auth?mode=signup&redirect=/pricing');
             return;
         }
 

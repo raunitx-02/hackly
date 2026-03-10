@@ -58,7 +58,8 @@ export default function AuthPage() {
                 await login(data.email, data.password);
                 toast.success('Welcome back!');
             }
-            navigate('/dashboard');
+            const redirectUrl = searchParams.get('redirect') || '/dashboard';
+            navigate(redirectUrl);
         } catch (err) {
             const msg = err.code === 'auth/invalid-credential' ? 'Invalid email or password' :
                 err.code === 'auth/email-already-in-use' ? 'Email already registered' :
@@ -73,6 +74,7 @@ export default function AuthPage() {
     const handleGoogle = async () => {
         setLoading(true);
         try {
+            const redirectUrl = searchParams.get('redirect') || '/dashboard';
             if (isSignup) {
                 await signupWithGoogle();
                 toast.success('Almost there! Complete your profile 👇');
@@ -80,7 +82,7 @@ export default function AuthPage() {
             } else {
                 await loginWithGoogle();
                 toast.success('Welcome back! 👋');
-                navigate('/dashboard');
+                navigate(redirectUrl);
             }
         } catch (err) {
             if (err.code === 'hackly/no-account') {

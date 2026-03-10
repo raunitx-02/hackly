@@ -19,6 +19,7 @@ import SubmissionsPage from './pages/SubmissionsPage';
 import JudgePage from './pages/JudgePage';
 import LeaderboardPage from './pages/LeaderboardPage';
 import PricingPage from './pages/PricingPage';
+import PaymentSuccessPage from './pages/PaymentSuccessPage';
 import SettingsPage from './pages/SettingsPage';
 import FeatureDetailPage from './pages/FeatureDetailPage';
 import AboutPage from './pages/AboutPage';
@@ -59,6 +60,7 @@ export default function App() {
           <Route path="/events/:id/leaderboard" element={<LeaderboardPage />} />
           <Route path="/events/:id/projects" element={<PublicProjectsGallery />} />
           <Route path="/pricing" element={<PricingPage />} />
+          <Route path="/payment-success" element={<ProtectedRoute><PaymentSuccessPage /></ProtectedRoute>} />
 
           {/* Feature detail pages */}
           <Route path="/features/:slug" element={<FeatureDetailPage />} />
