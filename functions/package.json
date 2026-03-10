@@ -14,11 +14,12 @@
     "main": "index.js",
     "dependencies": {
         "@google/genai": "^1.44.0",
+        "@types/markdown-it": "^14.1.2",
         "axios": "^1.13.6",
         "cors": "^2.8.6",
         "crypto": "^1.0.1",
         "crypto-js": "^4.2.0",
-        "firebase-admin": "^12.7.0",
+        "firebase-admin": "^11.11.1",
         "firebase-functions": "^4.9.0",
         "razorpay": "^2.9.6"
     },
