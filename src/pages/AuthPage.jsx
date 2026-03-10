@@ -22,8 +22,11 @@ export default function AuthPage() {
     const role = watch('role');
 
     useEffect(() => {
-        if (currentUser && userProfile) navigate('/dashboard');
-    }, [currentUser, userProfile, navigate]);
+        if (currentUser && userProfile) {
+            const redirectUrl = searchParams.get('redirect') || '/dashboard';
+            navigate(redirectUrl);
+        }
+    }, [currentUser, userProfile, navigate, searchParams]);
 
     const onSubmit = async (data) => {
         setLoading(true);
