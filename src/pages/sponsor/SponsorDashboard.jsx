@@ -67,7 +67,9 @@ export default function SponsorDashboard() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 20, marginBottom: 40 }}>
                 <div style={{ background: '#1E293B', padding: 24, borderRadius: 16, border: '1px solid #334155' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-                        <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(59,130,246,0.1)', color: '#3B82F6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Handshake size={20}/></div>
+                        <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(59,130,246,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <img src="/favicon.png" alt="" style={{ height: 24, width: 24 }} />
+                        </div>
                         <span style={{ color: '#94A3B8', fontWeight: 600, fontSize: 13, textTransform: 'uppercase', letterSpacing: 1 }}>Active Events</span>
                     </div>
                     <div style={{ fontSize: 36, fontWeight: 800, color: '#F8FAFC' }}>{stats.activeEvents}</div>

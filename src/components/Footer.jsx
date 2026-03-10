@@ -16,10 +16,9 @@ export default function Footer() {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 40, marginBottom: 48 }}>
                     {/* Brand */}
                     <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-                            <Zap size={24} color="#3B82F6" fill="#3B82F6" />
-                            <span style={{ fontSize: 20, fontWeight: 800, color: '#F8FAFC' }}>Hackly</span>
-                        </div>
+                        <Link to="/" style={{ display: 'flex', alignItems: 'center', marginBottom: 16 }}>
+                            <img src="/logo.png" alt="Hackly" style={{ height: 32, width: 'auto' }} />
+                        </Link>
                         <p style={{ color: '#64748B', fontSize: 14, lineHeight: 1.7, maxWidth: 260 }}>
                             The complete platform for Indian colleges to run world-class hackathons and tech fests. hackly.online
                         </p>

@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 import InstitutionAutocomplete from '../components/InstitutionAutocomplete';
 import {
-    Zap, Eye, EyeOff, Mail, Lock, User, Building, Chrome,
+    Eye, EyeOff, Mail, Lock, User, Building, Chrome,
     ArrowRight, CheckCircle, Sparkles, Phone, Calendar,
 } from 'lucide-react';
 

@@ -57,12 +57,8 @@ export default function Navbar() {
         }}>
             <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 64 }}>
                 {/* Logo */}
-                <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-                    <Zap size={28} color="#3B82F6" fill="#3B82F6" />
-                    <span style={{
-                        fontSize: 24, fontWeight: 800, color: '#F8FAFC',
-                        letterSpacing: '-0.02em',
-                    }}>Hackly</span>
+                <Link to="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
+                    <img src="/logo.png" alt="Hackly" style={{ height: 40, width: 'auto' }} />
                 </Link>
 
                 {/* Desktop Nav Links */}

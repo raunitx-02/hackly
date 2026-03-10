@@ -1,5 +1,5 @@
 import {
-    Zap,
+    Sparkles,
     Rocket,
     ShieldCheck,
     Users,
@@ -19,7 +19,7 @@ export const ABOUT_COPY = {
             "It is built specifically for schools, coaching institutes, and colleges in India, not generic Western tooling."
         ],
         focus: [
-            { icon: Zap, title: "Simple for teachers", desc: "No tech expertise needed to manage registrations and teams." },
+            { icon: Sparkles, title: "Simple for teachers", desc: "No tech expertise needed to manage registrations and teams." },
             { icon: Users, title: "Exciting for students", desc: "A professional platform to showcase their innovation." },
             { icon: ShieldCheck, title: "Reliable for admins", desc: "Transparent judging and scam-free result aggregation." }
         ]

@@ -78,7 +78,7 @@ export default function CompleteProfilePage() {
                         borderRadius: 18, display: 'flex', alignItems: 'center', justifyContent: 'center',
                         margin: '0 auto 20px',
                     }}>
-                        <Zap size={30} color="white" fill="white" />
+                        <img src="/favicon.png" alt="Hackly" style={{ height: 32, width: 32 }} />
                     </div>
                     <h1 style={{ fontSize: 26, fontWeight: 800, color: '#F8FAFC', marginBottom: 8 }}>One last step 👋</h1>
                     <p style={{ color: '#64748B', fontSize: 15 }}>

@@ -173,7 +173,7 @@ export default function FeatureDetailPage() {
                                         width: 36, height: 36, borderRadius: 10, background: `${data.color}20`,
                                         display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16,
                                     }}>
-                                        <Zap size={18} color={data.color} />
+                                        <img src="/favicon.png" alt="" style={{ height: 18, width: 18 }} />
                                     </div>
                                     <h3 style={{ fontSize: 16, fontWeight: 700, color: '#F8FAFC', marginBottom: 8 }}>{h.heading}</h3>
                                     <p style={{ color: '#94A3B8', fontSize: 14, lineHeight: 1.7 }}>{h.body}</p>

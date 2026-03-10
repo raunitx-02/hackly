@@ -38,14 +38,8 @@ export default function SponsorLayout() {
                 position: 'fixed', top: 0, bottom: 0, left: 0, zIndex: 40 
             }}>
                 <div style={{ padding: '32px 24px', flexShrink: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 40 }}>
-                        <div style={{ width: 36, height: 36, background: 'linear-gradient(135deg, #10B981, #059669)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <Handshake size={20} color="white" />
-                        </div>
-                        <div>
-                            <div style={{ fontSize: 18, fontWeight: 800, color: '#F8FAFC', letterSpacing: '-0.5px' }}>Hackly Sponsor</div>
-                            <div style={{ fontSize: 11, color: '#10B981', fontWeight: 600, letterSpacing: 1 }}>STUDIO</div>
-                        </div>
+                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: 40 }}>
+                        <img src="/logo.png" alt="Hackly" style={{ height: 38, width: 'auto' }} />
                     </div>
 
                     <nav style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

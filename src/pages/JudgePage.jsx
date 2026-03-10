@@ -195,7 +195,7 @@ export default function JudgePage() {
                         </div>
                     ) : submissions.length === 0 ? (
                         <div style={{ textAlign: 'center', padding: '80px 0', background: '#1E293B', borderRadius: 16, border: '1px solid #334155' }}>
-                            <Star size={40} color="#334155" style={{ marginBottom: 16 }} />
+                            <img src="/favicon.png" alt="" style={{ height: 40, width: 40, margin: '0 auto 16px', opacity: 0.5 }} />
                             <p style={{ color: '#64748B', fontSize: 16 }}>No submissions yet for this event.</p>
                         </div>
                     ) : (

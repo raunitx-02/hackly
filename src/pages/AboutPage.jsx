@@ -33,7 +33,7 @@ export default function AboutPage() {
                             background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.3)',
                             marginBottom: 24,
                         }}>
-                            <Zap size={14} color="#3B82F6" fill="#3B82F6" />
+                            <img src="/favicon.png" alt="" style={{ height: 16, width: 16 }} />
                             <span style={{ color: '#60a5fa', fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                                 Our Mission
                             </span>

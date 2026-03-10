@@ -45,7 +45,7 @@ export default function ChangelogPage() {
                 <section style={{ padding: '72px 0 56px', background: 'linear-gradient(135deg, rgba(16,185,129,0.08), rgba(59,130,246,0.06))', borderBottom: '1px solid #334155', textAlign: 'center' }}>
                     <div className="container">
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 16px', borderRadius: 9999, background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', marginBottom: 20 }}>
-                            <Zap size={14} color="#10B981" />
+                            <img src="/favicon.png" alt="" style={{ height: 16, width: 16 }} />
                             <span style={{ color: '#34d399', fontSize: 13, fontWeight: 600 }}>Product Updates</span>
                         </div>
                         <h1 style={{ fontSize: 'clamp(32px,4vw,52px)', fontWeight: 800, marginBottom: 16 }}>

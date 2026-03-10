@@ -75,13 +75,10 @@ export default function DashboardLayout({ children }) {
             {/* Logo */}
             {!mobile && (
                 <div style={{
-                    padding: '24px 20px', borderBottom: '1px solid #334155',
-                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '20px', borderBottom: '1px solid #334155',
+                    display: 'flex', alignItems: 'center',
                 }}>
-                    <Zap size={24} color="#3B82F6" fill="#3B82F6" />
-                    <span style={{ fontSize: 18, fontWeight: 800, color: '#F8FAFC', letterSpacing: '-0.02em' }}>
-                        Hackly
-                    </span>
+                    <img src="/logo.png" alt="Hackly" style={{ height: 32, width: 'auto' }} />
                 </div>
             )}
 
@@ -204,9 +201,8 @@ export default function DashboardLayout({ children }) {
                     display: 'none', alignItems: 'center', justifyContent: 'space-between',
                     padding: '14px 20px', borderBottom: '1px solid #334155', background: '#1E293B',
                 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <Zap size={20} color="#3B82F6" fill="#3B82F6" />
-                        <span style={{ fontWeight: 800, fontSize: 16, color: '#F8FAFC' }}>Hackly</span>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <img src="/logo.png" alt="Hackly" style={{ height: 24, width: 'auto' }} />
                     </div>
                     <button onClick={() => setSidebarOpen(true)} style={{
                         background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', padding: 4,
