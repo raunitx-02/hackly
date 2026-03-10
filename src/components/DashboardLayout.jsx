@@ -75,10 +75,10 @@ export default function DashboardLayout({ children }) {
             {/* Logo */}
             {!mobile && (
                 <div style={{
-                    padding: '20px', borderBottom: '1px solid #334155',
+                    padding: '24px 20px', borderBottom: '1px solid #334155',
                     display: 'flex', alignItems: 'center',
                 }}>
-                    <img src="/logo.png" alt="Hackly" style={{ height: 32, width: 'auto' }} />
+                    <img src="/logo.png" alt="Hackly" style={{ height: '36px', width: 'auto', objectFit: 'contain' }} />
                 </div>
             )}
 
