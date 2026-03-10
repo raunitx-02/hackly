@@ -80,8 +80,9 @@ export default function LandingPage() {
     const [isBookCallOpen, setIsBookCallOpen] = useState(false);
     const [bookCallSource, setBookCallSource] = useState('');
     const [isCampusPartnerOpen, setIsCampusPartnerOpen] = useState(false);
-    const { currentUser } = useAuth();
+    const { currentUser, userProfile } = useAuth();
     const navigate = useNavigate();
+    const [isAnnual, setIsAnnual] = useState(true);
 
     const openBookCallModal = (source) => {
         setBookCallSource(source);
@@ -89,18 +90,35 @@ export default function LandingPage() {
     };
 
     const handleSubscription = async (plan) => {
+        // 1. If it's a "Book a call" plan, direct to contact
         if (plan.ctaLink === '/contact' || plan.name === 'Institution Pro') {
             navigate('/contact');
             return;
         }
 
+        // 2. Auth check
         if (!currentUser) {
             toast.error('Please login to subscribe to a plan');
             navigate('/auth?mode=signup&redirect=/pricing');
             return;
         }
 
-        await RazorpayService.processSubscription(currentUser, plan);
+        // 3. Prevent subscribing to current plan
+        if (userProfile?.currentPlan === plan.name) {
+            toast('You are already subscribed to this plan.', { icon: 'ℹ️' });
+            return;
+        }
+
+        // Prepare the specific plan structure RazorpayService expects 
+        // using the currently toggled price
+        const selectedPriceValue = isAnnual ? plan.annualPrice : plan.monthlyPrice;
+        const planForPayment = {
+            ...plan,
+            priceValue: selectedPriceValue // Ensure RazorpayService picks up the exact numeric amount
+        };
+
+        // 4. Trigger Razorpay Payment Flow
+        await RazorpayService.processSubscription(currentUser, planForPayment);
     };
 
     useEffect(() => {
@@ -110,7 +128,31 @@ export default function LandingPage() {
         );
         if (statsRef.current) observer.observe(statsRef.current);
         return () => observer.disconnect();
-    }, []);
+    }, []);    // Helper to format currency
+    const formatPrice = (amount) => {
+        if (amount === 0) return '₹0';
+        return `₹${amount.toLocaleString('en-IN')}`;
+    };
+
+    // Helper for Dynamic CTA Text
+    const getCtaText = (plan) => {
+        // Find current user's plan tier
+        const currentPlanObj = PRICING_PLANS.find(p => p.name === userProfile?.currentPlan);
+        const currentTier = currentPlanObj ? currentPlanObj.tier : -1;
+
+        if (userProfile?.currentPlan === plan.name) return 'You are subscribed';
+        if (plan.ctaLink === '/contact') return 'Book a call';
+        if (!currentUser) return plan.cta;
+
+        if (plan.tier > currentTier) return 'Upgrade';
+        if (plan.tier < currentTier) return 'Downgrade';
+        
+        return plan.cta;
+    };
+
+    // Determine if pricing should be visible
+    const role = String(userProfile?.role || '').toLowerCase();
+    const shouldShowPricing = !currentUser || (role !== 'participant' && role !== 'judge');
 
     return (
         <div style={{ background: '#0F172A', minHeight: '100vh' }}>
@@ -433,74 +475,132 @@ export default function LandingPage() {
             </section>
 
             {/* ─── PRICING ─── */}
-            <section id="pricing" className="section" style={{ background: 'rgba(30,41,59,0.3)' }}>
-                <div className="container">
-                    <div style={{ textAlign: 'center', marginBottom: 56 }}>
-                        <h2 style={{ fontSize: 36, fontWeight: 700, marginBottom: 16 }}>
-                            Simple, Transparent <span className="gradient-text">Pricing</span>
-                        </h2>
-                        <p style={{ color: '#94A3B8', fontSize: 16, maxWidth: 480, margin: '0 auto' }}>
-                            Start free. Scale as you grow. No hidden fees.
-                        </p>
-                    </div>
+            {shouldShowPricing && (
+                <section id="pricing" className="section" style={{ background: 'rgba(30,41,59,0.3)' }}>
+                    <div className="container">
+                        <div style={{ textAlign: 'center', marginBottom: 56 }}>
+                            <h2 style={{ fontSize: 36, fontWeight: 700, marginBottom: 16 }}>
+                                Simple, Transparent <span className="gradient-text">Pricing</span>
+                            </h2>
+                            <p style={{ color: '#94A3B8', fontSize: 16, maxWidth: 480, margin: '0 auto', marginBottom: 40 }}>
+                                Start free. Scale as you grow. No hidden fees.
+                            </p>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 20, maxWidth: 1200, margin: '0 auto' }}>
-                        {PRICING_PLANS.map(plan => (
-                            <div key={plan.name} style={{
-                                position: 'relative', borderRadius: 16,
-                                background: plan.highlighted
-                                    ? 'linear-gradient(#1E293B,#1E293B) padding-box, linear-gradient(135deg,#3B82F6,#8B5CF6) border-box'
-                                    : '#1E293B',
-                                border: plan.highlighted ? '2px solid transparent' : '1px solid #334155',
-                                padding: 28, transition: 'transform 0.2s, box-shadow 0.2s',
-                                display: 'flex', flexDirection: 'column'
-                            }}
-                                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 24px 48px rgba(0,0,0,0.3)'; }}
-                                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
-                            >
-                                {plan.badge && (
-                                    <div style={{
-                                        position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)',
-                                        background: 'linear-gradient(135deg,#3B82F6,#8B5CF6)', color: 'white',
-                                        fontSize: 11, fontWeight: 700, padding: '4px 14px', borderRadius: 9999,
-                                        letterSpacing: '0.05em', whiteSpace: 'nowrap',
-                                        boxShadow: '0 4px 12px rgba(59,130,246,0.5)'
-                                    }}>
-                                        ⭐ {plan.badge}
-                                    </div>
-                                )}
-                                <div style={{ fontSize: 20, fontWeight: 700, color: '#F8FAFC', marginBottom: 6 }}>{plan.name}</div>
-                                <div style={{ color: '#64748B', fontSize: 13, marginBottom: 24, minHeight: 40 }}>{plan.tagline}</div>
-                                <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 28 }}>
-                                    <span style={{ fontSize: 36, fontWeight: 800, color: '#F8FAFC' }}>{plan.price}</span>
-                                    <span style={{ color: '#64748B', fontSize: 13 }}>{plan.period}</span>
-                                </div>
-                                <div style={{ marginBottom: 28, flex: 1 }}>
-                                    {plan.features.map(f => (
-                                        <div key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 12 }}>
-                                            <CheckCircle size={16} color={plan.highlighted ? "#3B82F6" : "#10B981"} style={{ flexShrink: 0, marginTop: 2 }} />
-                                            <span style={{ color: '#CBD5E1', fontSize: 13, lineHeight: 1.5 }}>{f}</span>
-                                        </div>
-                                    ))}
-                                </div>
+                            {/* Billing Toggle */}
+                            <div style={{
+                                display: 'inline-flex', alignItems: 'center', gap: 16,
+                                background: '#1E293B', border: '1px solid #334155',
+                                padding: '8px 16px', borderRadius: 9999, margin: '0 auto'
+                            }}>
+                                <span style={{ color: !isAnnual ? '#F8FAFC' : '#94A3B8', fontWeight: 600, fontSize: 15, transition: 'color 0.2s' }}>
+                                    Monthly
+                                </span>
                                 <button
-                                    onClick={() => handleSubscription(plan)}
-                                    className={plan.highlighted ? 'btn-gradient' : 'btn-outline'}
-                                    style={{ width: '100%', textAlign: 'center', cursor: 'pointer', display: 'block', minHeight: 44, lineHeight: '20px', marginTop: 'auto' }}
+                                    onClick={() => setIsAnnual(!isAnnual)}
+                                    style={{
+                                        position: 'relative', width: 56, height: 32, borderRadius: 9999,
+                                        background: isAnnual ? '#3B82F6' : '#334155', border: 'none',
+                                        cursor: 'pointer', transition: 'background 0.3s'
+                                    }}
                                 >
-                                    {plan.cta}
+                                    <div style={{
+                                        position: 'absolute', top: 4, left: isAnnual ? 28 : 4,
+                                        width: 24, height: 24, background: '#fff', borderRadius: '50%',
+                                        transition: 'left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                        boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                                    }} />
                                 </button>
+                                <span style={{ color: isAnnual ? '#F8FAFC' : '#94A3B8', fontWeight: 600, fontSize: 15, transition: 'color 0.2s', display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    Annually
+                                    <span style={{
+                                        background: 'rgba(16,185,129,0.15)', color: '#10B981',
+                                        fontSize: 11, padding: '2px 8px', borderRadius: 9999, fontWeight: 700
+                                    }}>
+                                        Save 10%
+                                    </span>
+                                </span>
                             </div>
-                        ))}
-                    </div>
+                        </div>
 
-                    <div style={{ textAlign: 'center', marginTop: 32 }}>
-                        <p style={{ color: '#64748B', fontSize: 14, maxWidth: 600, margin: '0 auto', fontStyle: 'italic' }}>
-                            {PRICING_NOTE}
-                        </p>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 20, maxWidth: 1200, margin: '0 auto' }}>
+                            {PRICING_PLANS.map(plan => {
+                                const isCurrentPlan = userProfile?.currentPlan === plan.name;
+                                const displayPrice = isAnnual ? plan.annualPrice : plan.monthlyPrice;
+                                const ctaLabel = getCtaText(plan);
+
+                                return (
+                                    <div key={plan.name} style={{
+                                        position: 'relative', borderRadius: 16,
+                                        background: plan.highlighted
+                                            ? 'linear-gradient(#1E293B,#1E293B) padding-box, linear-gradient(135deg,#3B82F6,#8B5CF6) border-box'
+                                            : '#1E293B',
+                                        border: plan.highlighted ? '2px solid transparent' : '1px solid #334155',
+                                        padding: 28, transition: 'transform 0.2s, box-shadow 0.2s',
+                                        display: 'flex', flexDirection: 'column'
+                                    }}
+                                        onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 24px 48px rgba(0,0,0,0.3)'; }}
+                                        onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
+                                    >
+                                        {plan.badge && (
+                                            <div style={{
+                                                position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)',
+                                                background: 'linear-gradient(135deg,#3B82F6,#8B5CF6)', color: 'white',
+                                                fontSize: 11, fontWeight: 700, padding: '4px 14px', borderRadius: 9999,
+                                                letterSpacing: '0.05em', whiteSpace: 'nowrap',
+                                                boxShadow: '0 4px 12px rgba(59,130,246,0.5)'
+                                            }}>
+                                                ⭐ {plan.badge}
+                                            </div>
+                                        )}
+                                        <div style={{ fontSize: 20, fontWeight: 700, color: '#F8FAFC', marginBottom: 6 }}>{plan.name}</div>
+                                        <div style={{ color: '#64748B', fontSize: 13, marginBottom: 24, minHeight: 40 }}>{plan.tagline}</div>
+                                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 28, flexWrap: 'wrap' }}>
+                                            {plan.name === 'Institution Pro' && (
+                                                <span style={{ color: '#94A3B8', fontSize: 14, fontWeight: 600, marginRight: 2 }}>Starting from</span>
+                                            )}
+                                            <span style={{ fontSize: 36, fontWeight: 800, color: '#F8FAFC' }}>
+                                                {formatPrice(displayPrice)}
+                                            </span>
+                                            <span style={{ color: '#64748B', fontSize: 13 }}>
+                                                / {isAnnual ? 'year' : 'month'}
+                                            </span>
+                                        </div>
+                                        <div style={{ marginBottom: 28, flex: 1 }}>
+                                            {plan.features.map(f => (
+                                                <div key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 12 }}>
+                                                    <CheckCircle size={16} color={plan.highlighted ? "#3B82F6" : "#10B981"} style={{ flexShrink: 0, marginTop: 2 }} />
+                                                    <span style={{ color: '#CBD5E1', fontSize: 13, lineHeight: 1.5 }}>{f}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <button
+                                            onClick={() => handleSubscription(plan)}
+                                            disabled={isCurrentPlan}
+                                            className={isCurrentPlan ? '' : (plan.highlighted ? 'btn-gradient' : 'btn-outline')}
+                                            style={{ 
+                                                width: '100%', textAlign: 'center', cursor: isCurrentPlan ? 'not-allowed' : 'pointer', 
+                                                display: 'block', minHeight: 44, lineHeight: '20px', marginTop: 'auto',
+                                                background: isCurrentPlan ? 'rgba(51, 65, 85, 0.5)' : undefined,
+                                                color: isCurrentPlan ? '#94A3B8' : undefined,
+                                                border: isCurrentPlan ? '1px solid #334155' : undefined,
+                                                borderRadius: isCurrentPlan ? '8px' : undefined
+                                            }}
+                                        >
+                                            {ctaLabel}
+                                        </button>
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        <div style={{ textAlign: 'center', marginTop: 32 }}>
+                            <p style={{ color: '#64748B', fontSize: 14, maxWidth: 600, margin: '0 auto', fontStyle: 'italic' }}>
+                                {PRICING_NOTE}
+                            </p>
+                        </div>
                     </div>
-                </div>
-            </section>
+                </section>
+            )}
 
             {/* ─── CTA Banner ─── */}
             <section className="section">

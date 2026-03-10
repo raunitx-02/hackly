@@ -1,9 +1,11 @@
 export const PRICING_PLANS = [
     {
         name: 'Free / Trial',
-        price: '₹0',
-        priceValue: 0,
-        period: '/ year',
+        tier: 0,
+        monthlyPrice: 0,
+        annualPrice: 0,
+        priceValue: 0, // Fallback for pure numeric processing
+        period: '',
         tagline: 'For very small schools or first-time trial users',
         highlighted: false,
         features: [
@@ -19,9 +21,11 @@ export const PRICING_PLANS = [
     },
     {
         name: 'Starter',
-        price: '₹15,000',
-        priceValue: 15000,
-        period: '/ year',
+        tier: 1,
+        monthlyPrice: 1500,
+        annualPrice: 16200, // 1500 * 12 * 0.9 (10% discount)
+        priceValue: 16200,
+        period: '',
         tagline: 'Perfect for small schools and coaching institutes',
         targetSize: 'up to 500 students',
         highlighted: false,
@@ -39,9 +43,11 @@ export const PRICING_PLANS = [
     },
     {
         name: 'Growth',
-        price: '₹40,000',
-        priceValue: 40000,
-        period: '/ year',
+        tier: 2,
+        monthlyPrice: 4000,
+        annualPrice: 43200, // 4000 * 12 * 0.9 (10% discount)
+        priceValue: 43200,
+        period: '',
         tagline: 'For growing schools, colleges, and coaching chains',
         targetSize: '500–1500 students',
         highlighted: true,
@@ -63,9 +69,11 @@ export const PRICING_PLANS = [
     },
     {
         name: 'Institution Pro',
-        price: 'From ₹80,000',
-        priceValue: 80000,
-        period: '/ year',
+        tier: 3,
+        monthlyPrice: 8000,
+        annualPrice: 90000, // 8000 * 12 is 96000. 90000 per year
+        priceValue: 90000,
+        period: '',
         tagline: 'For universities and large education brands',
         targetSize: '1500+ students, multi-branch networks',
         highlighted: false,

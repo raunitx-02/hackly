@@ -13,6 +13,7 @@ import {
 import { ORGANIZER_CONFIG } from '../data/advancedOrganizerConfig';
 import { AI_GENERATOR_CONFIG } from '../data/aiGeneratorConfig';
 import { getFunctions, httpsCallable } from 'firebase/functions';
+import { BLOCKED_KEYWORDS } from '../data/adminBlockedKeywords';
 
 const STEPS = [
     { num: 1, label: 'Basic Info' },
@@ -88,7 +89,6 @@ function Row({ children, cols = 2 }) {
         </div>
     );
 }
-import { BLOCKED_KEYWORDS } from '../data/adminBlockedKeywords';
 
 export default function CreateEventPage() {
     const { currentUser, hasFeature } = useAuth();
