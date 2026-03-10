@@ -29,7 +29,7 @@ export default function PaymentSuccessPage() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '20px',
+            padding: '84px 20px 20px', // Adjusted for 64px Navbar + 20px extra padding
             position: 'relative',
             overflow: 'hidden'
         }}>
