@@ -174,7 +174,7 @@ exports.createRazorpayOrder = functions.region('us-central1').https.onCall(async
         const order = await instance.orders.create({
             amount: amountInPaise,
             currency: "INR",
-            receipt: `receipt_${context.auth.uid}_${Date.now()}`,
+            receipt: `rcpt_${Date.now()}`,
             notes: {
                 uid: context.auth.uid,
                 planName: planName

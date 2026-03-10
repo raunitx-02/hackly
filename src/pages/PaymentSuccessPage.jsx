@@ -74,8 +74,8 @@ export default function PaymentSuccessPage() {
                   <Check size={40} color="white" style={{ animation: 'checkDraw 0.6s ease-out 0.4s both' }} />
               </div>
               
-              <h1 style={{ fontSize: 32, fontWeight: 800, color: '#F8FAFC', marginBottom: 12, animation: 'fadeInUp 0.6s ease-out 0.2s both' }}>
-                  Payment Successful!
+              <h1 style={{ fontSize: 36, fontWeight: 800, color: '#F8FAFC', marginBottom: 12, animation: 'fadeInUp 0.6s ease-out 0.2s both' }}>
+                  Congratulations! 🎉
               </h1>
               <p style={{ color: '#94A3B8', fontSize: 16, marginBottom: 32, animation: 'fadeInUp 0.6s ease-out 0.4s both' }}>
                   You are now on the <span style={{ color: '#F8FAFC', fontWeight: 600 }}>{plan.name}</span> plan. Welcome aboard!

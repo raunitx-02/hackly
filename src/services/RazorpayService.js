@@ -67,11 +67,10 @@ class RazorpayService {
                         console.log('[RazorpayService] Payment Successful:', response.razorpay_payment_id);
                         toast.success('Payment successful! Verifying...', { duration: 5000 });
                         
-                        // Optional: You can poll Firestore or just wait for the webhook
-                        // We'll redirect to a success page or refresh the user data
+                        // Redirect to the professional Success Page
                         setTimeout(() => {
-                            window.location.href = '/dashboard?payment=success';
-                        }, 2000);
+                            window.location.href = `/payment-success?plan=${encodeURIComponent(plan.name)}`;
+                        }, 1500);
                     },
                     prefill: {
                         name: user.displayName || 'Organizer',
