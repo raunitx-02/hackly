@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import PaymentService from '../services/PaymentService';
+import RazorpayService from '../services/RazorpayService';
 import toast from 'react-hot-toast';
 
 // Count-up hook
@@ -100,7 +100,7 @@ export default function LandingPage() {
             return;
         }
 
-        await PaymentService.processSubscription(currentUser, plan);
+        await RazorpayService.processSubscription(currentUser, plan);
     };
 
     useEffect(() => {

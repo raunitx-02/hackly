@@ -2,6 +2,7 @@ export const PRICING_PLANS = [
     {
         name: 'Free / Trial',
         price: '₹0',
+        priceValue: 0,
         period: '/ year',
         tagline: 'For very small schools or first-time trial users',
         highlighted: false,
@@ -19,6 +20,7 @@ export const PRICING_PLANS = [
     {
         name: 'Starter',
         price: '₹15,000',
+        priceValue: 15000,
         period: '/ year',
         tagline: 'Perfect for small schools and coaching institutes',
         targetSize: 'up to 500 students',
@@ -38,6 +40,7 @@ export const PRICING_PLANS = [
     {
         name: 'Growth',
         price: '₹40,000',
+        priceValue: 40000,
         period: '/ year',
         tagline: 'For growing schools, colleges, and coaching chains',
         targetSize: '500–1500 students',
@@ -61,6 +64,7 @@ export const PRICING_PLANS = [
     {
         name: 'Institution Pro',
         price: 'From ₹80,000',
+        priceValue: 80000,
         period: '/ year',
         tagline: 'For universities and large education brands',
         targetSize: '1500+ students, multi-branch networks',

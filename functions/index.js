@@ -1,4 +1,4 @@
-const functions = require('firebase-functions');
+const functions = require('firebase-functions/v1');
 const admin = require('firebase-admin');
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
@@ -145,192 +145,114 @@ exports.moderateEventContent = functions.firestore
         return null;
     });
 
-/**
- * ─── CASHFREE PAYMENT INTEGRATION ───
- */
+// ─── PAYMENT INTEGRATION (RAZORPAY) ───
 
 /**
- * Cloud Function: Create a Cashfree Order
- * securely communicates with Cashfree to generate a payment_session_id 
+ * Cloud Function: Create a Razorpay Order
  */
-exports.createCashfreeOrder = functions.https.onCall(async (data, context) => {
-    // 1. Check Authentication
+exports.createRazorpayOrder = functions.region('us-central1').https.onCall(async (data, context) => {
+    console.log('[Razorpay] createRazorpayOrder Invoked');
+    
     if (!context.auth) {
-        throw new functions.https.HttpsError('unauthenticated', 'User must be logged in.');
+        throw new functions.https.HttpsError('unauthenticated', 'Login required.');
     }
 
-    const { planName, amount, customerPhone = "9999999999", customerName = "Organizer" } = data; // Amount in INR
+    const { planName, amountInPaise } = data;
+    const KEY_ID = process.env.RAZORPAY_KEY_ID;
+    const KEY_SECRET = process.env.RAZORPAY_KEY_SECRET;
 
-    // 2. Fetch Cashfree Keys (Environment variables)
-    const APP_ID = process.env.CASHFREE_APP_ID;
-    const SECRET_KEY = process.env.CASHFREE_SECRET_KEY;
-    const ENVIRONMENT = process.env.CASHFREE_ENVIRONMENT || 'SANDBOX'; // PRODUCTION or SANDBOX
+    if (!KEY_ID || !KEY_SECRET) {
+        throw new functions.https.HttpsError('failed-precondition', 'Payment gateway not configured.');
+    }
 
-    const baseUrl = ENVIRONMENT === 'PRODUCTION'
-        ? 'https://api.cashfree.com/pg/orders'
-        : 'https://sandbox.cashfree.com/pg/orders';
-
-    const orderId = `order_${context.auth.uid}_${Date.now()}`;
+    const instance = new Razorpay({
+        key_id: KEY_ID,
+        key_secret: KEY_SECRET,
+    });
 
     try {
-        // 3. Call Cashfree API to create an order
-        const response = await axios.post(baseUrl, {
-            order_id: orderId,
-            order_amount: amount,
-            order_currency: "INR",
-            customer_details: {
-                customer_id: context.auth.uid,
-                customer_phone: customerPhone,
-                customer_name: customerName,
-                customer_email: context.auth.token.email || "no-reply@hackly.online"
-            },
-            order_meta: {
-                return_url: `https://eventforge-d6dbe.web.app/pricing?order_id=${orderId}`,
-                notify_url: `https://us-central1-${process.env.GCP_PROJECT || 'eventforge-d6dbe'}.cloudfunctions.net/cashfreeWebhook`
-            },
-            order_tags: {
-                planName: planName,
-                uid: context.auth.uid
-            }
-        }, {
-            headers: {
-                'x-client-id': APP_ID,
-                'x-client-secret': SECRET_KEY,
-                'x-api-version': '2023-08-01',
-                'Content-Type': 'application/json'
+        const order = await instance.orders.create({
+            amount: amountInPaise,
+            currency: "INR",
+            receipt: `receipt_${context.auth.uid}_${Date.now()}`,
+            notes: {
+                uid: context.auth.uid,
+                planName: planName
             }
         });
 
-        // 4. Log the initiated payment in Firestore
-        await db.collection('payments').doc(orderId).set({
+        console.log('[Razorpay] Order Created:', order.id);
+
+        // Track in Firestore
+        await db.collection('payments').doc(order.id).set({
             uid: context.auth.uid,
-            orderId: orderId,
-            amount: amount,
+            orderId: order.id,
+            amount: amountInPaise / 100,
             planName: planName,
             status: 'created',
-            paymentSessionId: response.data.payment_session_id,
             createdAt: admin.firestore.FieldValue.serverTimestamp()
         });
 
         return {
-            orderId: orderId,
-            paymentSessionId: response.data.payment_session_id,
-            environment: ENVIRONMENT
+            orderId: order.id,
+            amount: order.amount,
+            currency: order.currency,
+            key: KEY_ID
         };
 
     } catch (error) {
-        console.error('Error creating Cashfree order:', error.response?.data || error.message);
-        throw new functions.https.HttpsError('internal', 'Failed to create payment order with Cashfree.');
+        console.error('[Razorpay] Order Creation Error:', error);
+        throw new functions.https.HttpsError('internal', 'Payment service currently unavailable.');
     }
 });
 
 /**
- * Cloud Function: Webhook for Cashfree
- * Server-to-server confirmation preventing frontend spoofing
+ * Cloud Function: Razorpay Webhook for secure confirmation
  */
-exports.cashfreeWebhook = functions.https.onRequest(async (req, res) => {
-    try {
-        const signature = req.headers['x-webhook-signature'];
-        const timestamp = req.headers['x-webhook-timestamp'];
-        const bodyRaw = req.rawBody.toString(); // Necessary for HMAC crypto verification
+exports.razorpayWebhook = functions.region('us-central1').https.onRequest(async (req, res) => {
+    const secret = process.env.RAZORPAY_WEBHOOK_SECRET || process.env.RAZORPAY_KEY_SECRET;
+    const signature = req.headers['x-razorpay-signature'];
 
-        const SECRET_KEY = process.env.CASHFREE_SECRET_KEY;
+    const expectedSignature = crypto
+        .createHmac('sha256', secret)
+        .update(req.rawBody)
+        .digest('hex');
 
-        // 1. Verify Cashfree Webhook Signature
-        const expectedSignature = crypto
-            .createHmac('sha256', SECRET_KEY)
-            .update(timestamp + bodyRaw)
-            .digest('base64');
-
-        if (expectedSignature !== signature) {
-            console.error('Invalid Cashfree Webhook Signature');
-            return res.status(400).send('Invalid Signature');
-        }
-
-        const payload = req.body;
-        const eventType = payload.type;
-
-        console.log(`Received Cashfree Webhook: ${eventType}`);
-
-        if (eventType === 'PAYMENT_SUCCESS_WEBHOOK') {
-            const orderMeta = payload.data.order;
-            const orderId = orderMeta.order_id;
-            const planName = orderMeta.order_tags?.planName || 'Unknown Plan';
-            const uid = orderMeta.order_tags?.uid;
-
-            // 2. Mark payment successful in DB
-            await db.collection('payments').doc(orderId).update({
-                status: 'success',
-                transactionId: payload.data.payment.cf_payment_id,
-                verifiedAt: admin.firestore.FieldValue.serverTimestamp()
-            });
-
-            // 3. Grant the subscription to the Organizer
-            if (uid) {
-                const role = planName.toLowerCase().includes('pro') ? 'admin' : 'organizer';
-                await db.collection('users').doc(uid).update({
-                    role: role,
-                    subscriptionStatus: 'active',
-                    currentPlan: planName,
-                    updatedAt: admin.firestore.FieldValue.serverTimestamp()
-                });
-
-                // 4. Log the moderation/system activity
-                await db.collection('moderationLog').add({
-                    type: 'system',
-                    action: 'plan_purchased',
-                    entityId: uid,
-                    entityName: planName,
-                    reason: `Verified Cashfree Payment: ${payload.data.payment.cf_payment_id}`,
-                    performedBy: 'system',
-                    createdAt: admin.firestore.FieldValue.serverTimestamp()
-                });
-            }
-        }
-
-        if (eventType === 'PAYMENT_SUCCESS_WEBHOOK') {
-            const orderMeta = payload.data.order;
-            const orderId = orderMeta.order_id;
-            const planName = orderMeta.order_tags?.planName || 'Unknown Plan';
-            const uid = orderMeta.order_tags?.uid;
-
-            // 2. Mark payment successful in DB
-            await db.collection('payments').doc(orderId).update({
-                status: 'success',
-                transactionId: payload.data.payment.cf_payment_id,
-                verifiedAt: admin.firestore.FieldValue.serverTimestamp()
-            });
-
-            // 3. Grant the subscription to the Organizer
-            if (uid) {
-                const role = planName.toLowerCase().includes('pro') ? 'admin' : 'organizer';
-                await db.collection('users').doc(uid).update({
-                    role: role,
-                    subscriptionStatus: 'active',
-                    currentPlan: planName,
-                    updatedAt: admin.firestore.FieldValue.serverTimestamp()
-                });
-
-                // 4. Log the moderation/system activity
-                await db.collection('moderationLog').add({
-                    type: 'system',
-                    action: 'plan_purchased',
-                    entityId: uid,
-                    entityName: planName,
-                    reason: `Verified Cashfree Payment: ${payload.data.payment.cf_payment_id}`,
-                    performedBy: 'system',
-                    createdAt: admin.firestore.FieldValue.serverTimestamp()
-                });
-            }
-        }
-
-        return res.status(200).send('Webhook processed');
-
-    } catch (error) {
-        console.error('Error processing webhook:', error);
-        return res.status(500).send('Internal Server Error');
+    if (expectedSignature !== signature) {
+        console.error('[Razorpay Webhook] Invalid Signature');
+        return res.status(400).send('Invalid signature');
     }
+
+    const payload = req.body;
+    console.log('[Razorpay Webhook] Received:', payload.event);
+
+    if (payload.event === 'payment.captured') {
+        const payment = payload.payload.payment.entity;
+        const notes = payment.notes;
+        const orderId = payment.order_id;
+
+        await db.collection('payments').doc(orderId).update({
+            status: 'success',
+            paymentId: payment.id,
+            verifiedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+
+        if (notes?.uid) {
+            const role = notes.planName?.toLowerCase().includes('pro') ? 'admin' : 'organizer';
+            await db.collection('users').doc(notes.uid).update({
+                role: role,
+                subscriptionStatus: 'active',
+                currentPlan: notes.planName,
+                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+            console.log(`[Razorpay Webhook] Subscription Activated for ${notes.uid}`);
+        }
+    }
+
+    return res.status(200).send('OK');
 });
+
+
 
 
 /**

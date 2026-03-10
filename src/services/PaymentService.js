@@ -3,9 +3,9 @@ import toast from 'react-hot-toast';
 import { load } from '@cashfreepayments/cashfree-js';
 
 /**
- * PaymentService
+ * PaymentService (Re-implemented)
  * 
- * Handles the logic for triggering Cashfree checkout.
+ * Handles the logic for triggering Cashfree checkout with improved error handling.
  */
 const PaymentService = {
     cashfree: null,
@@ -15,8 +15,9 @@ const PaymentService = {
      */
     initializeCashfree: async () => {
         if (!PaymentService.cashfree) {
+            console.log('[PaymentService] Initializing Cashfree SDK in PRODUCTION mode...');
             PaymentService.cashfree = await load({
-                mode: "production", // Live Payments Enabled
+                mode: "production", 
             });
         }
         return PaymentService.cashfree;
@@ -31,59 +32,70 @@ const PaymentService = {
             return;
         }
 
-        const loadingToast = toast.loading('Securely initiating Cashfree payment...');
+        console.log(`[PaymentService] Processing subscription for plan: ${plan.name} (Amount: ${plan.price})`);
+        const loadingToast = toast.loading('Connecting to Cashfree...');
 
         try {
             // 1. Initialize Cashfree Web SDK
             const cashfree = await PaymentService.initializeCashfree();
 
-            // 2. Call Cloud Function to create Cashfree Order securely
+            // 2. Call Cloud Function to create Cashfree Order
+            // Explicitly ensuring we target the us-central1 region
+            console.log('[PaymentService] Calling createCashfreeOrder Cloud Function...');
             const createOrderFn = httpsCallable(functions, 'createCashfreeOrder');
+            
+            // Clean the amount string (e.g., "₹15,000" -> 15000)
             const amount = parseInt(plan.price.replace(/[^\d]/g, ''));
 
-            const { data: orderData } = await createOrderFn({
+            if (isNaN(amount) || amount <= 0) {
+                throw new Error('Invalid plan amount detected.');
+            }
+
+            const payload = {
                 planName: plan.name,
                 amount: amount,
                 customerName: user.displayName || "Organizer",
-                customerPhone: "9999999999" // Can be captured from user profile in the future
-            });
-
-            toast.dismiss(loadingToast);
-
-            // 3. Open Cashfree Checkout Modal using the returned Payment Session ID
-            let checkoutOptions = {
-                paymentSessionId: orderData.paymentSessionId,
-                redirectTarget: "_modal", // Open as a pop-up overlay rather than completely redirecting tab
+                customerPhone: user.phoneNumber || "9999999999" 
             };
 
+            const result = await createOrderFn(payload);
+            const orderData = result.data;
+
+            console.log('[PaymentService] Order created successfully:', orderData.orderId);
+            toast.dismiss(loadingToast);
+
+            // 3. Open Cashfree Checkout Modal
+            const checkoutOptions = {
+                paymentSessionId: orderData.paymentSessionId,
+                redirectTarget: "_modal", 
+            };
+
+            console.log('[PaymentService] Opening Checkout Modal...');
             cashfree.checkout(checkoutOptions).then((result) => {
                 if (result.error) {
-                    // This will be true whenever user clicks on close icon inside the modal or any error happens during payment
-                    console.error("Cashfree Checkout Error:", result.error);
+                    console.error("[PaymentService] Checkout interaction error:", result.error);
                     toast.error(result.error.message || "Payment cancelled or failed.");
                 }
-                if (result.redirect) {
-                    // This will be true if the payment redirect page couldn't be opened in an iframe
-                    console.log("Payment will be redirected");
-                }
+                
                 if (result.paymentDetails) {
-                    // This will be called whenever the payment is completed irrespective of transaction status
-                    console.log("Payment completed details:", result.paymentDetails);
-                    toast.loading("Payment complete! Waiting for secure server verification...");
+                    console.log("[PaymentService] Payment interaction completed:", result.paymentDetails);
+                    toast.loading("Verifying payment status...");
 
-                    // The backend cashfreeWebhook will verify the payment asynchronously.
-                    // We can poll the backend, or simply instruct the user to refresh.
+                    // Verify on success page
                     setTimeout(() => {
                         toast.dismiss();
-                        window.location.href = `/payment-success?plan=${encodeURIComponent(plan.name)}`;
+                        window.location.href = `/payment-success?plan=${encodeURIComponent(plan.name)}&order_id=${orderData.orderId}`;
                     }, 2000);
                 }
             });
 
         } catch (error) {
-            console.error('Cashfree Payment Error:', error);
+            console.error('[PaymentService] Error in processSubscription:', error);
             toast.dismiss(loadingToast);
-            toast.error(error.message || 'Payment initiation failed.');
+            
+            // Handle Firebase specific Errors
+            const errorMessage = error.details?.message || error.message || 'Payment initiation failed.';
+            toast.error(errorMessage);
         }
     }
 };

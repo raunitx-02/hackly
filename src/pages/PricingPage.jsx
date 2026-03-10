@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import PaymentService from '../services/PaymentService';
+import RazorpayService from '../services/RazorpayService';
 import toast from 'react-hot-toast';
 import { CheckCircle, X, ArrowRight } from 'lucide-react';
 import { PRICING_PLANS, PRICING_NOTE, FEATURES_COMPARISON } from '../data/pricingConfig';
@@ -40,7 +40,7 @@ export default function PricingPage() {
         }
 
         // 3. Trigger Razorpay Payment Flow
-        await PaymentService.processSubscription(currentUser, plan);
+        await RazorpayService.processSubscription(currentUser, plan);
     };
 
     return (
