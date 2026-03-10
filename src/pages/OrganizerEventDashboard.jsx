@@ -1,16 +1,19 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { doc, collection, query, where, onSnapshot, getDocs, updateDoc, getDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db, storage } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import DashboardLayout from '../components/DashboardLayout';
 import { ORGANIZER_CONFIG } from '../data/advancedOrganizerConfig';
 import toast from 'react-hot-toast';
-import { Users, FileText, Download, Check, X, Shield, Settings, Eye, Megaphone } from 'lucide-react';
+import { Users, FileText, Download, Check, X, Shield, Settings, Eye, Megaphone, Handshake, Plus, Trash2, Link as LinkIcon, Upload } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { calculateEngagementScore, getReliabilityTier } from '../lib/engagementHelpers';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { addDoc, deleteDoc } from 'firebase/firestore';
+import SponsorshipManager from '../components/SponsorshipManager';
 
 // Reusable Tab Button
 function TabButton({ label, active, onClick, icon: Icon }) {
@@ -28,7 +31,7 @@ function TabButton({ label, active, onClick, icon: Icon }) {
     );
 }
 
-function ApplicationsTab({ event }) {
+function ApplicationsTab({ event, hasFeature }) {
     const [registrations, setRegistrations] = useState([]);
     const [usersStats, setUsersStats] = useState({});
     const [loading, setLoading] = useState(true);
@@ -352,6 +355,7 @@ export default function OrganizerEventDashboard() {
         { id: 'applications', label: ORGANIZER_CONFIG.labels.applications, icon: Users },
         { id: 'reports', label: ORGANIZER_CONFIG.labels.reports, icon: FileText },
         { id: 'judges', label: ORGANIZER_CONFIG.labels.judges, icon: Shield },
+        { id: 'sponsors', label: 'Sponsors', icon: Handshake },
     ];
 
     if (hasFeature('campus_pulse')) {
@@ -383,10 +387,11 @@ export default function OrganizerEventDashboard() {
             </div>
 
             {/* Content */}
-            {tab === 'applications' && <ApplicationsTab event={event} />}
+            {tab === 'applications' && <ApplicationsTab event={event} hasFeature={hasFeature} />}
             {tab === 'reports' && <ReportsTab event={event} />}
             {tab === 'judges' && <JudgesTab event={event} />}
             {tab === 'pulse' && <CampusPulseTab event={event} />}
+            {tab === 'sponsors' && <SponsorshipManager event={event} />}
 
         </DashboardLayout>
     );

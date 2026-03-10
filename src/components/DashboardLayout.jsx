@@ -33,9 +33,17 @@ const JUDGE_NAV = [
     { icon: Settings, label: 'Settings', path: '/settings' },
 ];
 
+const SPONSOR_NAV = [
+    { icon: LayoutDashboard, label: 'Sponsor Portal', path: '/sponsor' },
+    { icon: Star, label: 'Matchmaking', path: '/sponsor/intent' },
+    { icon: BarChart3, label: 'Impact Reports', path: '/sponsor/reports' },
+    { icon: Settings, label: 'Settings', path: '/settings' },
+];
+
 function getNavItems(role) {
     if (role === 'organizer') return ORGANIZER_NAV;
     if (role === 'judge') return JUDGE_NAV;
+    if (role === 'sponsor') return SPONSOR_NAV;
     return PARTICIPANT_NAV;
 }
 

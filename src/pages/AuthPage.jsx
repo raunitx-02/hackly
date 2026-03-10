@@ -311,6 +311,7 @@ export default function AuthPage() {
                                         <option value="organizer">🎯 Organizer (Create events)</option>
                                         <option value="participant">👨‍💻 Participant (Join events)</option>
                                         <option value="judge">⭐ Judge (Score projects)</option>
+                                        <option value="sponsor">🤝 Sponsor (Fund & Support)</option>
                                     </select>
                                     {errors.role && <p style={{ color: '#EF4444', fontSize: 12, marginTop: 4 }}>{errors.role.message}</p>}
                                 </div>
@@ -357,8 +358,8 @@ export default function AuthPage() {
                                     </>
                                 )}
 
-                                {/* ── JUDGE-SPECIFIC FIELDS ── */}
-                                {role === 'judge' && (
+                                {/* ── JUDGE OR SPONSOR-SPECIFIC FIELDS ── */}
+                                {(role === 'judge' || role === 'sponsor') && (
                                     <>
                                         <SectionLabel text="Professional Details" />
                                         <InstitutionAutocomplete

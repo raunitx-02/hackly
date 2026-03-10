@@ -25,9 +25,9 @@ export default function PricingPage() {
     useEffect(() => {
         if (currentUser && userProfile) {
             const role = String(userProfile.role || '').toLowerCase();
-            if (role === 'participant' || role === 'judge') {
+            if (role === 'participant' || role === 'judge' || role === 'sponsor') {
                 navigate('/dashboard');
-                toast('Pricing is for organizers only.', { icon: 'ℹ️' });
+                toast('Pricing is oriented for organizers.', { icon: 'ℹ️' });
             }
         }
     }, [currentUser, userProfile, navigate]);

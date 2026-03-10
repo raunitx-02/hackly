@@ -43,6 +43,13 @@ import AdminEventsPage from './pages/admin/AdminEventsPage';
 import AdminUsersPage from './pages/admin/AdminUsersPage';
 import AdminModerationPage from './pages/admin/AdminModerationPage';
 import AdminSettingsPage from './pages/admin/AdminSettingsPage';
+import SponsorCRMPage from './pages/admin/SponsorCRMPage';
+
+// Sponsor Pages
+import SponsorLayout from './pages/sponsor/SponsorLayout';
+import SponsorDashboard from './pages/sponsor/SponsorDashboard';
+import SponsorIntent from './pages/sponsor/SponsorIntent';
+import SponsorReports from './pages/sponsor/SponsorReports';
 
 export default function App() {
   return (
@@ -99,8 +106,16 @@ export default function App() {
             <Route path="campus-partners" element={<AdminCampusPartnersPage />} />
             <Route path="events" element={<AdminEventsPage />} />
             <Route path="users" element={<AdminUsersPage />} />
+            <Route path="sponsors" element={<SponsorCRMPage />} />
             <Route path="moderation" element={<AdminModerationPage />} />
             <Route path="settings" element={<AdminSettingsPage />} />
+          </Route>
+
+          {/* Sponsor Routes */}
+          <Route path="/sponsor" element={<ProtectedRoute requiredRole="sponsor"><SponsorLayout /></ProtectedRoute>}>
+            <Route index element={<SponsorDashboard />} />
+            <Route path="intent" element={<SponsorIntent />} />
+            <Route path="reports" element={<SponsorReports />} />
           </Route>
 
           {/* Fallback */}

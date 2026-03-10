@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db, functions } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import DashboardLayout from '../components/DashboardLayout';
 import toast from 'react-hot-toast';
@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { ORGANIZER_CONFIG } from '../data/advancedOrganizerConfig';
 import { AI_GENERATOR_CONFIG } from '../data/aiGeneratorConfig';
-import { getFunctions, httpsCallable } from 'firebase/functions';
+import { httpsCallable } from 'firebase/functions';
 import { BLOCKED_KEYWORDS } from '../data/adminBlockedKeywords';
 
 const STEPS = [
@@ -182,7 +182,6 @@ export default function CreateEventPage() {
         setAiResults([]);
 
         try {
-            const functions = getFunctions();
             const generateProblemStatements = httpsCallable(functions, 'generateProblemStatements');
             const result = await generateProblemStatements({
                 board: AI_GENERATOR_CONFIG.boards.find(b => b.id === aiForm.board)?.label || aiForm.board,

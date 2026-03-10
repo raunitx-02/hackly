@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useLocation, Outlet } from 'react-router-dom';
 import {
     Zap, LayoutDashboard, Building2, CalendarDays, Users, ShieldAlert,
-    Settings, LogOut, Home, Menu, X, ShieldCheck
+    Settings, LogOut, Home, Menu, X, ShieldCheck, Handshake
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
@@ -13,6 +13,7 @@ const ADMIN_NAV = [
     { icon: Zap, label: 'Campus Partners', path: '/admin/campus-partners' },
     { icon: CalendarDays, label: 'Events', path: '/admin/events' },
     { icon: Users, label: 'Users & Blacklist', path: '/admin/users' },
+    { icon: Handshake, label: 'Sponsors CRM', path: '/admin/sponsors' },
     { icon: ShieldAlert, label: 'Moderation Log', path: '/admin/moderation' },
     { icon: Settings, label: 'Settings', path: '/admin/settings' },
 ];

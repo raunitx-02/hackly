@@ -37,7 +37,7 @@ export function AuthProvider({ children }) {
         return unsubscribe;
     }, []);
 
-    async function signup({ email, password, name, role, college }) {
+    async function signup({ email, password, name, role, college, phone, gender, age, yearOfStudy, branch, state }) {
         const cred = await createUserWithEmailAndPassword(auth, email, password);
         const profile = {
             uid: cred.user.uid,
@@ -45,6 +45,12 @@ export function AuthProvider({ children }) {
             email,
             role,
             college: college || '',
+            phone: phone || '',
+            gender: gender || '',
+            age: age || '',
+            yearOfStudy: yearOfStudy || '',
+            branch: branch || '',
+            state: state || '',
             createdAt: new Date().toISOString(),
         };
         await setDoc(doc(db, 'users', cred.user.uid), profile);
@@ -85,10 +91,16 @@ export function AuthProvider({ children }) {
     }
 
     // Called from CompleteProfilePage after Google signup
-    async function completeGoogleProfile({ uid, name, email, role, college }) {
+    async function completeGoogleProfile({ uid, name, email, role, college, phone, gender, age, yearOfStudy, branch, state }) {
         const profile = {
             uid, name, email, role,
             college: college || '',
+            phone: phone || '',
+            gender: gender || '',
+            age: age || '',
+            yearOfStudy: yearOfStudy || '',
+            branch: branch || '',
+            state: state || '',
             createdAt: new Date().toISOString(),
         };
         await setDoc(doc(db, 'users', uid), profile);

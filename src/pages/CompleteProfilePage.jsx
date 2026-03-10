@@ -11,6 +11,7 @@ const ROLES = [
     { value: 'organizer', emoji: '🎯', label: 'Organizer', desc: 'Create and manage hackathons & tech fests' },
     { value: 'participant', emoji: '👨‍💻', label: 'Participant', desc: 'Join events, form teams, submit projects' },
     { value: 'judge', emoji: '⭐', label: 'Judge', desc: 'Evaluate and score project submissions' },
+    { value: 'sponsor', emoji: '🤝', label: 'Sponsor', desc: 'Fund events, discover talent, build brand visibility' },
 ];
 
 const SectionLabel = ({ text }) => (
@@ -213,8 +214,8 @@ export default function CompleteProfilePage() {
                         </>
                     )}
 
-                    {/* ── JUDGE EXTRA ── */}
-                    {form.role === 'judge' && (
+                    {/* ── JUDGE OR SPONSOR EXTRA ── */}
+                    {(form.role === 'judge' || form.role === 'sponsor') && (
                         <>
                             <SectionLabel text="Professional Details" />
                             <InstitutionAutocomplete

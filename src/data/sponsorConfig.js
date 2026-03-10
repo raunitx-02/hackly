@@ -1,0 +1,43 @@
+export const SPONSOR_CONFIG = {
+  themes: [
+    'AI & Machine Learning',
+    'Web3 & Blockchain',
+    'FinTech',
+    'EdTech',
+    'HealthTech',
+    'SaaS',
+    'Cybersecurity',
+    'Robotics & Hardware',
+    'Cloud Computing',
+    'Sustainability & GreenTech',
+    'Open Source',
+  ],
+  skills: [
+    'React / Next.js',
+    'Python',
+    'Node.js',
+    'JavaScript / TypeScript',
+    'Java / Spring',
+    'C++ / C#',
+    'AI Model Training',
+    'Data Analysis',
+    'UI/UX Design',
+    'Mobile App Dev',
+    'Solidity / Rust',
+  ],
+  audienceTypes: [
+    'Tier-1 Institutes (IITs/NITs)',
+    'Tier-2 Colleges',
+    'Tier-3 Colleges',
+    'Schools / Juniors',
+    'Bootcamps / Coaching',
+    'Women in Tech',
+  ],
+  outcomes: [
+    'Hire interns / freshers',
+    'Brand visibility & awareness',
+    'Pilot product usage via student hackers',
+    'Collect resumes / leads',
+    'CSR & Community Building',
+  ]
+};

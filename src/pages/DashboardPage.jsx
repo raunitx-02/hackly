@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { doc, collection, query, where, onSnapshot, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
@@ -358,6 +358,10 @@ function JudgeDashboard() {
 // ── Main Dashboard Page ──────────────────────────────────────────
 export default function DashboardPage() {
     const { userProfile } = useAuth();
+
+    if (userProfile?.role === 'sponsor') {
+        return <Navigate to="/sponsor" replace />;
+    }
 
     const content = userProfile?.role === 'organizer' ? <OrganizerDashboard />
         : userProfile?.role === 'judge' ? <JudgeDashboard />
