@@ -91,7 +91,7 @@ function Row({ children, cols = 2 }) {
 }
 
 export default function CreateEventPage() {
-    const { currentUser, hasFeature } = useAuth();
+    const { currentUser, userProfile, hasFeature } = useAuth();
     const [step, setStep] = useState(1);
     const [problemStatements, setProblemStatements] = useState(['']);
 
