@@ -152,7 +152,8 @@ export default function LandingPage() {
 
     // Determine if pricing should be visible
     const role = String(userProfile?.role || '').toLowerCase();
-    const shouldShowPricing = !currentUser || (role !== 'participant' && role !== 'judge');
+    const shouldShowPricing = !currentUser || role === 'organizer';
+    const isOrganizerOrGuest = !currentUser || role === 'organizer';
 
     return (
         <div style={{ background: '#0F172A', minHeight: '100vh' }}>
@@ -212,11 +213,13 @@ export default function LandingPage() {
                             </p>
 
                             <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-                                <Link to="/auth?mode=signup" className="btn-gradient" style={{ fontSize: 16, padding: '14px 28px', textDecoration: 'none' }}>
-                                    Start for Free <ArrowRight size={18} />
-                                </Link>
-                                <button className="btn-outline" style={{ fontSize: 16, padding: '14px 28px', minHeight: 44 }}>
-                                    <Play size={16} fill="#F8FAFC" /> Watch Demo
+                                {isOrganizerOrGuest && (
+                                    <Link to="/auth?mode=signup" className="btn-gradient" style={{ fontSize: 16, padding: '14px 28px', textDecoration: 'none' }}>
+                                        Start for Free <ArrowRight size={18} />
+                                    </Link>
+                                )}
+                                <button className="btn-outline" style={{ fontSize: 16, padding: '14px 28px', minHeight: 44 }} onClick={() => navigate('/events')}>
+                                    <Play size={16} fill="#F8FAFC" /> Explore Events
                                 </button>
                             </div>
 
@@ -603,81 +606,85 @@ export default function LandingPage() {
             )}
 
             {/* ─── CTA Banner ─── */}
-            <section className="section">
-                <div className="container">
-                    <div style={{
-                        background: 'linear-gradient(135deg, rgba(59,130,246,0.15), rgba(139,92,246,0.15))',
-                        border: '1px solid rgba(59,130,246,0.3)', borderRadius: 24, padding: '60px 40px',
-                        textAlign: 'center',
-                    }}>
-                        <h2 style={{ fontSize: 'clamp(28px, 5vw, 42px)', fontWeight: 800, marginBottom: 16, display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                            Ready to Run Your Next <RotatingText words={CTA_WORDS} interval={CTA_ROTATION_INTERVAL} /><span className="gradient-text">?</span>
-                        </h2>
-                        <p style={{ color: '#94A3B8', fontSize: 16, marginBottom: 32, maxWidth: 560, margin: '0 auto 32px' }}>
-                            Join institutions across India already running their events on Hackly.
-                        </p>
-                        <Link to="/auth?mode=signup" className="btn-gradient" style={{ fontSize: 16, padding: '14px 32px', textDecoration: 'none' }}>
-                            Create Your First Event Free <ArrowRight size={18} />
-                        </Link>
+            {isOrganizerOrGuest && (
+                <section className="section">
+                    <div className="container">
+                        <div style={{
+                            background: 'linear-gradient(135deg, rgba(59,130,246,0.15), rgba(139,92,246,0.15))',
+                            border: '1px solid rgba(59,130,246,0.3)', borderRadius: 24, padding: '60px 40px',
+                            textAlign: 'center',
+                        }}>
+                            <h2 style={{ fontSize: 'clamp(28px, 5vw, 42px)', fontWeight: 800, marginBottom: 16, display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                                Ready to Run Your Next <RotatingText words={CTA_WORDS} interval={CTA_ROTATION_INTERVAL} /><span className="gradient-text">?</span>
+                            </h2>
+                            <p style={{ color: '#94A3B8', fontSize: 16, marginBottom: 32, maxWidth: 560, margin: '0 auto 32px' }}>
+                                Join institutions across India already running their events on Hackly.
+                            </p>
+                            <Link to="/auth?mode=signup" className="btn-gradient" style={{ fontSize: 16, padding: '14px 32px', textDecoration: 'none' }}>
+                                Create Your First Event Free <ArrowRight size={18} />
+                            </Link>
+                        </div>
                     </div>
-                </div>
-            </section>
+                </section>
+            )}
 
             {/* ─── CAMPUS PARTNER PROGRAM ─── */}
-            <section id="campus-partners" className="section" style={{ background: '#0F172A', borderTop: '1px solid #1E293B', padding: '80px 0' }}>
-                <div className="container">
-                    <div style={{
-                        background: '#1E293B', borderRadius: 24, border: '1px solid #334155',
-                        padding: '48px', overflow: 'hidden', position: 'relative'
-                    }}>
+            {isOrganizerOrGuest && (
+                <section id="campus-partners" className="section" style={{ background: '#0F172A', borderTop: '1px solid #1E293B', padding: '80px 0' }}>
+                    <div className="container">
                         <div style={{
-                            position: 'absolute', top: 0, right: 0, width: '40%', height: '100%',
-                            background: 'radial-gradient(circle at top right, rgba(59,130,246,0.1) 0%, transparent 70%)',
-                            pointerEvents: 'none'
-                        }} />
+                            background: '#1E293B', borderRadius: 24, border: '1px solid #334155',
+                            padding: '48px', overflow: 'hidden', position: 'relative'
+                        }}>
+                            <div style={{
+                                position: 'absolute', top: 0, right: 0, width: '40%', height: '100%',
+                                background: 'radial-gradient(circle at top right, rgba(59,130,246,0.1) 0%, transparent 70%)',
+                                pointerEvents: 'none'
+                            }} />
 
-                        <div style={{ textAlign: 'center', marginBottom: 48 }}>
-                            <h2 style={{ fontSize: 'clamp(28px, 4vw, 36px)', fontWeight: 700, marginBottom: 16, color: '#F8FAFC' }}>
-                                {CAMPUS_PARTNER_CONFIG.section.title}
-                            </h2>
-                            <p style={{ color: '#94A3B8', fontSize: 16, maxWidth: 640, margin: '0 auto' }}>
-                                {CAMPUS_PARTNER_CONFIG.section.subtitle}
-                            </p>
-                        </div>
-
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 40, marginBottom: 48 }}>
-                            <div style={{ background: 'rgba(15,23,42,0.4)', borderRadius: 16, padding: 32, border: '1px solid #334155' }}>
-                                <h3 style={{ fontSize: 20, fontWeight: 700, color: '#F8FAFC', marginBottom: 20 }}>{CAMPUS_PARTNER_CONFIG.section.leftColumn.subheading}</h3>
-                                <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                                    {CAMPUS_PARTNER_CONFIG.section.leftColumn.bullets.map((b, i) => (
-                                        <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 16, color: '#CBD5E1', fontSize: 15, lineHeight: 1.5 }}>
-                                            <CheckCircle size={18} color="#3B82F6" style={{ marginTop: 2, flexShrink: 0 }} />
-                                            <span>{b}</span>
-                                        </li>
-                                    ))}
-                                </ul>
+                            <div style={{ textAlign: 'center', marginBottom: 48 }}>
+                                <h2 style={{ fontSize: 'clamp(28px, 4vw, 36px)', fontWeight: 700, marginBottom: 16, color: '#F8FAFC' }}>
+                                    {CAMPUS_PARTNER_CONFIG.section.title}
+                                </h2>
+                                <p style={{ color: '#94A3B8', fontSize: 16, maxWidth: 640, margin: '0 auto' }}>
+                                    {CAMPUS_PARTNER_CONFIG.section.subtitle}
+                                </p>
                             </div>
-                            <div style={{ background: 'rgba(15,23,42,0.4)', borderRadius: 16, padding: 32, border: '1px solid #334155' }}>
-                                <h3 style={{ fontSize: 20, fontWeight: 700, color: '#F8FAFC', marginBottom: 20 }}>{CAMPUS_PARTNER_CONFIG.section.rightColumn.subheading}</h3>
-                                <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                                    {CAMPUS_PARTNER_CONFIG.section.rightColumn.bullets.map((b, i) => (
-                                        <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 16, color: '#CBD5E1', fontSize: 15, lineHeight: 1.5 }}>
-                                            <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#8B5CF6', marginTop: 8, flexShrink: 0 }} />
-                                            <span>{b}</span>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        </div>
 
-                        <div style={{ textAlign: 'center' }}>
-                            <button onClick={() => setIsCampusPartnerOpen(true)} className="btn-gradient" style={{ padding: '16px 40px', fontSize: 16, cursor: 'pointer' }}>
-                                {CAMPUS_PARTNER_CONFIG.section.ctaText}
-                            </button>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 40, marginBottom: 48 }}>
+                                <div style={{ background: 'rgba(15,23,42,0.4)', borderRadius: 16, padding: 32, border: '1px solid #334155' }}>
+                                    <h3 style={{ fontSize: 20, fontWeight: 700, color: '#F8FAFC', marginBottom: 20 }}>{CAMPUS_PARTNER_CONFIG.section.leftColumn.subheading}</h3>
+                                    <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                                        {CAMPUS_PARTNER_CONFIG.section.leftColumn.bullets.map((b, i) => (
+                                            <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 16, color: '#CBD5E1', fontSize: 15, lineHeight: 1.5 }}>
+                                                <CheckCircle size={18} color="#3B82F6" style={{ marginTop: 2, flexShrink: 0 }} />
+                                                <span>{b}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                                <div style={{ background: 'rgba(15,23,42,0.4)', borderRadius: 16, padding: 32, border: '1px solid #334155' }}>
+                                    <h3 style={{ fontSize: 20, fontWeight: 700, color: '#F8FAFC', marginBottom: 20 }}>{CAMPUS_PARTNER_CONFIG.section.rightColumn.subheading}</h3>
+                                    <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                                        {CAMPUS_PARTNER_CONFIG.section.rightColumn.bullets.map((b, i) => (
+                                            <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 16, color: '#CBD5E1', fontSize: 15, lineHeight: 1.5 }}>
+                                                <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#8B5CF6', marginTop: 8, flexShrink: 0 }} />
+                                                <span>{b}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div style={{ textAlign: 'center' }}>
+                                <button onClick={() => setIsCampusPartnerOpen(true)} className="btn-gradient" style={{ padding: '16px 40px', fontSize: 16, cursor: 'pointer' }}>
+                                    {CAMPUS_PARTNER_CONFIG.section.ctaText}
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </section>
+                </section>
+            )}
 
 
 

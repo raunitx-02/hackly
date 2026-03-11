@@ -1,7 +1,10 @@
-import { Link, useLocation } from 'react-router-dom';
-import { Zap, Twitter, Linkedin, Github, Mail, Code2 } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function Footer() {
+    const { currentUser, userProfile } = useAuth();
+    const role = userProfile?.role?.toLowerCase();
+    const isOrganizerOrGuest = !currentUser || role === 'organizer';
+    
     const location = useLocation();
     // Hide footer on dashboard and settings routes
     const isDashboard =
@@ -49,7 +52,7 @@ export default function Footer() {
                         {
                             title: 'Product', links: [
                                 { label: 'Features', to: '/#features' },
-                                { label: 'Pricing', to: '/pricing' },
+                                ...(isOrganizerOrGuest ? [{ label: 'Pricing', to: '/pricing' }] : []),
                                 { label: 'Browse Events', to: '/events' },
                                 { label: 'Changelog', to: '/changelog' },
                             ]

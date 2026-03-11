@@ -40,10 +40,15 @@ export default function Navbar() {
         }
     };
 
+    const role = userProfile?.role?.toLowerCase();
+    const isOrganizerOrGuest = !currentUser || role === 'organizer';
+
     const navLinks = [
         { label: 'Features', href: '/#features' },
-        { label: 'Pricing', href: '/pricing' },
+        ...(isOrganizerOrGuest ? [{ label: 'Pricing', href: '/pricing' }] : []),
         { label: 'Events', href: '/events' },
+        { label: 'About', href: '/about' },
+        { label: 'Contact', href: '/contact' },
     ];
 
     return (

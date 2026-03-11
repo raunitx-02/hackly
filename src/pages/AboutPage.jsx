@@ -12,7 +12,13 @@ import {
 import { ABOUT_COPY } from '../data/aboutConfig';
 import BookCallModal from '../components/BookCallModal';
 
+import { useAuth } from '../contexts/AuthContext';
+
 export default function AboutPage() {
+    const { currentUser, userProfile } = useAuth();
+    const role = userProfile?.role?.toLowerCase();
+    const isOrganizerOrGuest = !currentUser || role === 'organizer';
+
     const [isBookCallOpen, setIsBookCallOpen] = useState(false);
     const [isImageLightboxOpen, setIsImageLightboxOpen] = useState(false);
 
@@ -226,27 +232,29 @@ export default function AboutPage() {
                 </section>
 
                 {/* ─── 5) CALL-TO-ACTION STRIP ─── */}
-                <section style={{ padding: '100px 0' }}>
-                    <div className="container">
-                        <div style={{
-                            background: 'linear-gradient(135deg, rgba(59,130,246,0.15), rgba(139,92,246,0.15))',
-                            border: '1px solid rgba(59,130,246,0.3)', borderRadius: 24, padding: '64px 40px',
-                            textAlign: 'center', position: 'relative', overflow: 'hidden'
-                        }}>
-                            <div style={{ position: 'absolute', top: -50, right: -50, width: 200, height: 200, background: 'radial-gradient(circle, rgba(59,130,246,0.1), transparent 70%)', pointerEvents: 'none' }} />
+                {isOrganizerOrGuest && (
+                    <section style={{ padding: '100px 0' }}>
+                        <div className="container">
+                            <div style={{
+                                background: 'linear-gradient(135deg, rgba(59,130,246,0.15), rgba(139,92,246,0.15))',
+                                border: '1px solid rgba(59,130,246,0.3)', borderRadius: 24, padding: '64px 40px',
+                                textAlign: 'center', position: 'relative', overflow: 'hidden'
+                            }}>
+                                <div style={{ position: 'absolute', top: -50, right: -50, width: 200, height: 200, background: 'radial-gradient(circle, rgba(59,130,246,0.1), transparent 70%)', pointerEvents: 'none' }} />
 
-                            <h2 style={{ fontSize: 'clamp(28px, 4vw, 36px)', fontWeight: 800, marginBottom: 16, maxWidth: 800, margin: '0 auto 16px' }}>
-                                {ABOUT_COPY.cta.heading}
-                            </h2>
-                            <p style={{ color: '#94A3B8', fontSize: 17, marginBottom: 36, maxWidth: 640, margin: '0 auto 36px' }}>
-                                {ABOUT_COPY.cta.subheading}
-                            </p>
-                            <button onClick={() => setIsBookCallOpen(true)} className="btn-gradient" style={{ fontSize: 16, padding: '14px 32px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-                                {ABOUT_COPY.cta.buttonText} <ChevronRight size={18} />
-                            </button>
+                                <h2 style={{ fontSize: 'clamp(28px, 4vw, 36px)', fontWeight: 800, marginBottom: 16, maxWidth: 800, margin: '0 auto 16px' }}>
+                                    {ABOUT_COPY.cta.heading}
+                                </h2>
+                                <p style={{ color: '#94A3B8', fontSize: 17, marginBottom: 36, maxWidth: 640, margin: '0 auto 36px' }}>
+                                    {ABOUT_COPY.cta.subheading}
+                                </p>
+                                <button onClick={() => setIsBookCallOpen(true)} className="btn-gradient" style={{ fontSize: 16, padding: '14px 32px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+                                    {ABOUT_COPY.cta.buttonText} <ChevronRight size={18} />
+                                </button>
+                            </div>
                         </div>
-                    </div>
-                </section>
+                    </section>
+                )}
             </div>
 
             {/* Profile Image Lightbox */}

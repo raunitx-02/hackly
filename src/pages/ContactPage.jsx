@@ -1,9 +1,10 @@
-import { Link } from 'react-router-dom';
-import { ArrowRight, MapPin, Mail, Clock, MessageSquare, Phone } from 'lucide-react';
-import { useState } from 'react';
-import toast from 'react-hot-toast';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function ContactPage() {
+    const { currentUser, userProfile } = useAuth();
+    const role = userProfile?.role?.toLowerCase();
+    const isOrganizerOrGuest = !currentUser || role === 'organizer';
+
     const [form, setForm] = useState({ name: '', email: '', subject: '', message: '' });
     const [sending, setSending] = useState(false);
 
@@ -59,7 +60,7 @@ export default function ContactPage() {
                                     <h3 style={{ fontSize: 15, fontWeight: 700, color: '#F8FAFC', marginBottom: 12 }}>Quick Links</h3>
                                     {[
                                         { label: 'Browse Events', to: '/events' },
-                                        { label: 'View Pricing', to: '/pricing' },
+                                        ...(isOrganizerOrGuest ? [{ label: 'View Pricing', to: '/pricing' }] : []),
                                         { label: 'Open Roles', to: '/careers' },
                                         { label: 'Privacy Policy', to: '/privacy' },
                                     ].map(l => (
