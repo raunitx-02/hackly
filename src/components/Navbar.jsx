@@ -58,7 +58,7 @@ export default function Navbar() {
             <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 64 }}>
                 {/* Logo */}
                 <Link to="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
-                    <img src="/logo.png" alt="Hackly" style={{ height: '42px', width: 'auto', objectFit: 'contain' }} />
+                    <img src="/logo.png?v=2" alt="Hackly" style={{ height: '36px', width: 'auto', objectFit: 'contain', display: 'block' }} />
                 </Link>
 
                 {/* Desktop Nav Links */}
