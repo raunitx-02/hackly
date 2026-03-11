@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { doc, onSnapshot, collection, query, where, addDoc, getDocs, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
@@ -480,19 +479,19 @@ export default function EventDetailPage() {
                         <div style={{ textAlign: 'center', padding: '60px 0' }}>
                             <Users size={40} color="#334155" style={{ marginBottom: 16 }} />
                             <p style={{ color: '#94A3B8', marginBottom: 20 }}>View teams on the Teams page</p>
-                            <a href={`/events/${id}/teams`} className="btn-gradient" style={{ textDecoration: 'none' }}>Go to Teams →</a>
+                            <Link to={`/events/${id}/teams`} className="btn-gradient" style={{ textDecoration: 'none' }}>Go to Teams →</Link>
                         </div>
                     )}
 
                     {tab === 'submissions' && (
                         <div style={{ textAlign: 'center', padding: '60px 0' }}>
-                            <a href={`/events/${id}/submissions`} className="btn-gradient" style={{ textDecoration: 'none' }}>Go to Submissions →</a>
+                            <Link to={`/events/${id}/submissions`} className="btn-gradient" style={{ textDecoration: 'none' }}>Go to Submissions →</Link>
                         </div>
                     )}
 
                     {tab === 'leaderboard' && (
                         <div style={{ textAlign: 'center', padding: '60px 0' }}>
-                            <a href={`/events/${id}/leaderboard`} className="btn-gradient" style={{ textDecoration: 'none' }}>View Leaderboard →</a>
+                            <Link to={`/events/${id}/leaderboard`} className="btn-gradient" style={{ textDecoration: 'none' }}>View Leaderboard →</Link>
                         </div>
                     )}
                 </div>

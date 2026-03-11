@@ -66,12 +66,22 @@ export default function Navbar() {
                     <img src="/logo.png?v=2" alt="Hackly" style={{ height: '36px', width: 'auto', objectFit: 'contain', display: 'block' }} />
                 </Link>
 
-                {/* Desktop Nav Links */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4 }} className="desktop-nav">
                     {navLinks.map(link => (
-                        <a key={link.label} href={link.href} className="nav-link">
-                            {link.label}
-                        </a>
+                        link.href.startsWith('/#') ? (
+                            <Link key={link.label} to="/" hash={link.href.replace('/', '')} className="nav-link" onClick={() => {
+                                if (location.pathname === '/') {
+                                    const el = document.getElementById(link.href.split('#')[1]);
+                                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                                }
+                            }}>
+                                {link.label}
+                            </Link>
+                        ) : (
+                            <Link key={link.label} to={link.href} className="nav-link">
+                                {link.label}
+                            </Link>
+                        )
                     ))}
                 </div>
 
@@ -171,12 +181,23 @@ export default function Navbar() {
                     padding: '12px 20px 20px',
                 }}>
                     {navLinks.map(link => (
-                        <a key={link.label} href={link.href} onClick={() => setMenuOpen(false)} style={{
-                            display: 'block', color: '#94A3B8', textDecoration: 'none', fontSize: 16,
-                            padding: '12px 0', borderBottom: '1px solid #1E293B',
-                        }}>
+                        <Link 
+                            key={link.label} 
+                            to={link.href.startsWith('/#') ? '/' : link.href} 
+                            onClick={() => {
+                                setMenuOpen(false);
+                                if (link.href.startsWith('/#') && location.pathname === '/') {
+                                    const el = document.getElementById(link.href.split('#')[1]);
+                                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                                }
+                            }} 
+                            style={{
+                                display: 'block', color: '#94A3B8', textDecoration: 'none', fontSize: 16,
+                                padding: '12px 0', borderBottom: '1px solid #1E293B',
+                            }}
+                        >
                             {link.label}
-                        </a>
+                        </Link>
                     ))}
                     {!currentUser && (
                         <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>

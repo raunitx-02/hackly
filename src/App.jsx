@@ -34,6 +34,15 @@ import GDPRPage from './pages/GDPRPage';
 import Footer from './components/Footer';
 import CompleteProfilePage from './pages/CompleteProfilePage';
 
+// Pricing route: only for guests or organizers
+function PricingRoute({ children }) {
+  const { currentUser, userProfile, loading } = useAuth();
+  if (loading) return null;
+  if (!currentUser) return children;
+  if (userProfile?.role === 'organizer') return children;
+  return <Navigate to="/dashboard" replace />;
+}
+
 // Admin Pages
 import AdminLayout from './pages/admin/AdminLayout';
 import AdminOverviewPage from './pages/admin/AdminOverviewPage';
@@ -66,7 +75,7 @@ export default function App() {
           <Route path="/events/:id/feedback" element={<CampusPulseFeedback />} />
           <Route path="/events/:id/leaderboard" element={<LeaderboardPage />} />
           <Route path="/events/:id/projects" element={<PublicProjectsGallery />} />
-          <Route path="/pricing" element={<PricingPage />} />
+          <Route path="/pricing" element={<PricingRoute><PricingPage /></PricingRoute>} />
           <Route path="/payment-success" element={<ProtectedRoute><PaymentSuccessPage /></ProtectedRoute>} />
 
           {/* Feature detail pages */}

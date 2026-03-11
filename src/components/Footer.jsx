@@ -82,15 +82,22 @@ export default function Footer() {
                                 {col.title}
                             </h4>
                             {col.links.map(link => (
-                                <Link key={link.label} to={link.to} style={{
-                                    display: 'block', color: '#64748B', textDecoration: 'none',
-                                    fontSize: 14, marginBottom: 10, transition: 'color 0.2s',
-                                }}
-                                    onMouseEnter={e => e.currentTarget.style.color = '#94A3B8'}
-                                    onMouseLeave={e => e.currentTarget.style.color = '#64748B'}
-                                >
-                                    {link.label}
-                                </Link>
+                                    <Link key={link.label} to={link.to.startsWith('/#') ? '/' : link.to} 
+                                        onClick={() => {
+                                            if (link.to.startsWith('/#') && location.pathname === '/') {
+                                                const el = document.getElementById(link.to.split('#')[1]);
+                                                if (el) el.scrollIntoView({ behavior: 'smooth' });
+                                            }
+                                        }}
+                                        style={{
+                                            display: 'block', color: '#64748B', textDecoration: 'none',
+                                            fontSize: 14, marginBottom: 10, transition: 'color 0.2s',
+                                        }}
+                                        onMouseEnter={e => e.currentTarget.style.color = '#94A3B8'}
+                                        onMouseLeave={e => e.currentTarget.style.color = '#64748B'}
+                                    >
+                                        {link.label}
+                                    </Link>
                             ))}
                         </div>
                     ))}
