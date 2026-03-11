@@ -1,3 +1,5 @@
+import { Link, useLocation } from 'react-router-dom';
+import { Zap, Twitter, Linkedin, Github, Mail, Code2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function Footer() {

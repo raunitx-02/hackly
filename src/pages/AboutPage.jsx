@@ -11,7 +11,6 @@ import {
 } from 'lucide-react';
 import { ABOUT_COPY } from '../data/aboutConfig';
 import BookCallModal from '../components/BookCallModal';
-
 import { useAuth } from '../contexts/AuthContext';
 
 export default function AboutPage() {

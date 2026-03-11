@@ -1,14 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
     Zap, CalendarDays, Users, FileText, Star, BarChart3, Handshake,
     ArrowRight, CheckCircle, Play, ChevronRight, Twitter, Linkedin,
     Github, Mail, Code2, Trophy, PlusCircle
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import RazorpayService from '../services/RazorpayService';
 import toast from 'react-hot-toast';
+import { PRICING_PLANS, PRICING_NOTE } from '../data/pricingConfig';
+import { HOW_IT_WORKS_STEPS } from '../data/howItWorksConfig';
+import { AUDIENCE_CARDS } from '../data/audienceConfig';
+import BookCallModal from '../components/BookCallModal';
+import CampusPartnerModal from '../components/CampusPartnerModal';
+import RotatingText from '../components/RotatingText';
+import { CTA_WORDS, CTA_ROTATION_INTERVAL } from '../data/ctaConfig';
+import { CAMPUS_PARTNER_CONFIG } from '../data/campusPartnerConfig';
 
 // Count-up hook
 function useCountUp(target, duration = 2000, start = false) {
@@ -43,14 +50,7 @@ const STEPS = [
     { num: '03', title: 'Judge & Announce', desc: 'Judges score projects in parallel; live leaderboard reveals winners automatically.', icon: Trophy },
 ];
 
-import { PRICING_PLANS, PRICING_NOTE } from '../data/pricingConfig';
-import { HOW_IT_WORKS_STEPS } from '../data/howItWorksConfig';
-import { AUDIENCE_CARDS } from '../data/audienceConfig';
-import BookCallModal from '../components/BookCallModal';
-import CampusPartnerModal from '../components/CampusPartnerModal';
-import RotatingText from '../components/RotatingText';
-import { CTA_WORDS, CTA_ROTATION_INTERVAL } from '../data/ctaConfig';
-import { CAMPUS_PARTNER_CONFIG } from '../data/campusPartnerConfig';
+
 
 const TESTIMONIALS = [
     {

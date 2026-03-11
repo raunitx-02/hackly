@@ -1,3 +1,7 @@
+import { Link } from 'react-router-dom';
+import { ArrowRight, MapPin, Mail, Clock, MessageSquare, Phone } from 'lucide-react';
+import { useState } from 'react';
+import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function ContactPage() {
