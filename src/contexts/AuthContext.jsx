@@ -1,16 +1,18 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import {
-    onAuthStateChanged,
-    signInWithEmailAndPassword,
-    createUserWithEmailAndPassword,
-    signInWithPopup,
-    signOut,
-    updatePassword,
-    deleteUser,
-    EmailAuthProvider,
+import { 
+    onAuthStateChanged, 
+    signInWithEmailAndPassword, 
+    createUserWithEmailAndPassword, 
+    signInWithPopup, 
+    signOut, 
+    updatePassword, 
+    deleteUser, 
+    EmailAuthProvider, 
     reauthenticateWithCredential,
+    signInWithPhoneNumber,
+    RecaptchaVerifier
 } from 'firebase/auth';
-import { doc, getDoc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, deleteDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { auth, db, googleProvider } from '../lib/firebase';
 
 const AuthContext = createContext(null);
@@ -60,6 +62,25 @@ export function AuthProvider({ children }) {
 
     async function login(email, password) {
         return signInWithEmailAndPassword(auth, email, password);
+    }
+
+    async function checkPhoneUniqueness(phone) {
+        if (!phone) return true;
+        const q = query(collection(db, 'users'), where('phone', '==', phone));
+        const snap = await getDocs(q);
+        return snap.empty;
+    }
+
+    async function sendOtp(phone, verifier) {
+        const isUnique = await checkPhoneUniqueness(phone);
+        if (!isUnique) {
+            throw new Error('This phone number is already registered with another account.');
+        }
+        return signInWithPhoneNumber(auth, phone, verifier);
+    }
+
+    async function verifyOtp(confirmationResult, code) {
+        return confirmationResult.confirm(code);
     }
 
     // LOGIN with Google — fails if no Firestore profile exists yet
@@ -168,6 +189,9 @@ export function AuthProvider({ children }) {
         updateProfile,
         changePassword,
         deleteAccount,
+        checkPhoneUniqueness,
+        sendOtp,
+        verifyOtp
     };
 
     return (
