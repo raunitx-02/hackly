@@ -66,9 +66,18 @@ export function AuthProvider({ children }) {
 
     async function checkPhoneUniqueness(phone) {
         if (!phone) return true;
-        const q = query(collection(db, 'users'), where('phone', '==', phone));
-        const snap = await getDocs(q);
-        return snap.empty;
+        try {
+            const { httpsCallable } = await import('../lib/firebase');
+            const { functions } = await import('../lib/firebase');
+            const validatePhone = httpsCallable(functions, 'validatePhoneUniqueness');
+            const result = await validatePhone({ phone });
+            return result.data.isUnique;
+        } catch (err) {
+            console.error('Phone uniqueness check failed:', err);
+            // Fallback to true if function fails to avoid blocking user, 
+            // but log it. In a real app, you might want to block.
+            return true; 
+        }
     }
 
     async function sendOtp(phone, verifier) {

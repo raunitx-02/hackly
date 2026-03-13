@@ -532,3 +532,21 @@ exports.updateEngagementOnSubmission = functions.firestore
 
         return batch.commit();
     });
+/**
+ * Cloud Function: Validate Phone Uniqueness
+ * Allows unauthenticated users to check if a phone number is already registered.
+ */
+exports.validatePhoneUniqueness = functions.region('us-central1').https.onCall(async (data, context) => {
+    const { phone } = data;
+    if (!phone) {
+        throw new functions.https.HttpsError('invalid-argument', 'Phone number is required.');
+    }
+
+    try {
+        const snap = await db.collection('users').where('phone', '==', phone).limit(1).get();
+        return { isUnique: snap.empty };
+    } catch (error) {
+        console.error('Error checking phone uniqueness:', error);
+        throw new functions.https.HttpsError('internal', 'Search failed.');
+    }
+});
