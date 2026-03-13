@@ -11,6 +11,85 @@ import {
     ArrowRight, CheckCircle, Sparkles, Phone, Calendar,
 } from 'lucide-react';
 
+const InputField = ({ label, name, type = 'text', icon: Icon, placeholder, register, validation = {}, errors, showPw, setShowPw, isSignup, password, passwordStrength }) => (
+    <div>
+        <label className="label">{label}</label>
+        <div style={{ position: 'relative' }}>
+            {Icon && (
+                <div style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#64748B', pointerEvents: 'none' }}>
+                    <Icon size={16} />
+                </div>
+            )}
+            <input
+                type={name === 'password' || name === 'confirmPassword' ? (showPw ? 'text' : 'password') : type}
+                placeholder={placeholder}
+                className="input"
+                style={{ paddingLeft: Icon ? 42 : 16, paddingRight: (name === 'password' || name === 'confirmPassword') ? 44 : 16 }}
+                {...register(name, validation)}
+            />
+            {(name === 'password' || name === 'confirmPassword') && (
+                <button type="button" onClick={() => setShowPw(!showPw)} style={{
+                    position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+                    background: 'none', border: 'none', cursor: 'pointer', color: '#64748B', padding: 4,
+                }}>
+                    {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+            )}
+        </div>
+        {name === 'password' && isSignup && password && (
+            <div style={{ marginTop: 8 }}>
+                <div style={{ height: 4, background: '#1E293B', borderRadius: 2, overflow: 'hidden' }}>
+                    <div style={{ 
+                        height: '100%', 
+                        width: `${passwordStrength}%`, 
+                        background: passwordStrength <= 25 ? '#EF4444' : passwordStrength <= 50 ? '#F59E0B' : passwordStrength <= 75 ? '#3B82F6' : '#10B981',
+                        transition: 'all 0.3s' 
+                    }} />
+                </div>
+                <p style={{ fontSize: 11, color: '#64748B', marginTop: 4 }}>
+                    Strength: {passwordStrength <= 25 ? 'Weak' : passwordStrength <= 50 ? 'Fair' : passwordStrength <= 75 ? 'Good' : 'Strong'}
+                </p>
+            </div>
+        )}
+        {errors[name] && <p style={{ color: '#EF4444', fontSize: 12, marginTop: 4 }}>{errors[name].message}</p>}
+    </div>
+);
+
+const SelectField = ({ label, name, options, register, validation = {}, errors }) => (
+    <div>
+        <label className="label">{label}</label>
+        <select className="input" {...register(name, validation)}>
+            {options.map(o => <option key={o.v} value={o.v}>{o.l}</option>)}
+        </select>
+        {errors[name] && <p style={{ color: '#EF4444', fontSize: 12, marginTop: 4 }}>{errors[name].message}</p>}
+    </div>
+);
+
+const OtpInput = ({ register }) => (
+    <div style={{ animation: 'fadeIn 0.4s ease' }}>
+        <label className="label">Verification Code *</label>
+        <div style={{ display: 'flex', gap: 10 }}>
+            <input
+                type="text"
+                placeholder="6-digit OTP"
+                className="input"
+                {...register('otp', { required: 'Code is required', minLength: 6, maxLength: 6 })}
+            />
+        </div>
+        <p style={{ color: '#64748B', fontSize: 13, marginTop: 12 }}>
+            Enter the code sent to your mobile number.
+        </p>
+    </div>
+);
+
+const SectionLabel = ({ text }) => (
+    <div style={{ borderBottom: '1px solid #334155', paddingBottom: 8, marginBottom: 4 }}>
+        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: '#475569', textTransform: 'uppercase' }}>{text}</span>
+    </div>
+);
+
+const STATES = ['Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal', 'Chandigarh', 'Delhi', 'J&K', 'Ladakh', 'Puducherry', 'Other'];
+
 export default function AuthPage() {
     const [searchParams] = useSearchParams();
     const [isSignup, setIsSignup] = useState(searchParams.get('mode') === 'signup');
@@ -108,7 +187,6 @@ export default function AuthPage() {
                             return;
                         }
                         const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', { size: 'invisible' });
-                        // For login, we don't throw on non-unique, but we should check if account exists
                         const result = await signInWithPhoneNumber(auth, data.phone, verifier);
                         setConfirmationResult(result);
                         setOtpStep(true);
@@ -169,89 +247,6 @@ export default function AuthPage() {
         setCollegeValue('');
         reset();
     };
-
-    const InputField = ({ label, name, type = 'text', icon: Icon, placeholder, validation = {} }) => (
-        <div>
-            <label className="label">{label}</label>
-            <div style={{ position: 'relative' }}>
-                {Icon && (
-                    <div style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#64748B', pointerEvents: 'none' }}>
-                        <Icon size={16} />
-                    </div>
-                )}
-                <input
-                    type={name === 'password' || name === 'confirmPassword' ? (showPw ? 'text' : 'password') : type}
-                    placeholder={placeholder}
-                    className="input"
-                    style={{ paddingLeft: Icon ? 42 : 16, paddingRight: (name === 'password' || name === 'confirmPassword') ? 44 : 16 }}
-                    {...register(name, validation)}
-                />
-                {(name === 'password' || name === 'confirmPassword') && (
-                    <button type="button" onClick={() => setShowPw(!showPw)} style={{
-                        position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
-                        background: 'none', border: 'none', cursor: 'pointer', color: '#64748B', padding: 4,
-                    }}>
-                        {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                )}
-            </div>
-            {name === 'password' && isSignup && password && (
-                <div style={{ marginTop: 8 }}>
-                    <div style={{ height: 4, background: '#1E293B', borderRadius: 2, overflow: 'hidden' }}>
-                        <div style={{ 
-                            height: '100%', 
-                            width: `${passwordStrength}%`, 
-                            background: passwordStrength <= 25 ? '#EF4444' : passwordStrength <= 50 ? '#F59E0B' : passwordStrength <= 75 ? '#3B82F6' : '#10B981',
-                            transition: 'all 0.3s' 
-                        }} />
-                    </div>
-                    <p style={{ fontSize: 11, color: '#64748B', marginTop: 4 }}>
-                        Strength: {passwordStrength <= 25 ? 'Weak' : passwordStrength <= 50 ? 'Fair' : passwordStrength <= 75 ? 'Good' : 'Strong'}
-                    </p>
-                </div>
-            )}
-            {name === 'confirmPassword' && isSignup && confirmPassword && password !== confirmPassword && (
-                <p style={{ color: '#EF4444', fontSize: 12, marginTop: 4 }}>Passwords do not match</p>
-            )}
-            {errors[name] && <p style={{ color: '#EF4444', fontSize: 12, marginTop: 4 }}>{errors[name].message}</p>}
-        </div>
-    );
-
-    const SelectField = ({ label, name, options, validation = {} }) => (
-        <div>
-            <label className="label">{label}</label>
-            <select className="input" {...register(name, validation)}>
-                {options.map(o => <option key={o.v} value={o.v}>{o.l}</option>)}
-            </select>
-            {errors[name] && <p style={{ color: '#EF4444', fontSize: 12, marginTop: 4 }}>{errors[name].message}</p>}
-        </div>
-    );
-
-    const OtpInput = () => (
-        <div style={{ animation: 'fadeIn 0.4s ease' }}>
-            <label className="label">Verification Code *</label>
-            <div style={{ display: 'flex', gap: 10 }}>
-                <input
-                    type="text"
-                    placeholder="6-digit OTP"
-                    className="input"
-                    {...register('otp', { required: 'Code is required', minLength: 6, maxLength: 6 })}
-                />
-            </div>
-            <p style={{ color: '#64748B', fontSize: 13, marginTop: 12 }}>
-                Enter the code sent to your mobile number.
-            </p>
-        </div>
-    );
-
-    // Section header for grouped fields
-    const SectionLabel = ({ text }) => (
-        <div style={{ borderBottom: '1px solid #334155', paddingBottom: 8, marginBottom: 4 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: '#475569', textTransform: 'uppercase' }}>{text}</span>
-        </div>
-    );
-
-    const STATES = ['Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal', 'Chandigarh', 'Delhi', 'J&K', 'Ladakh', 'Puducherry', 'Other'];
 
     return (
         <div style={{ minHeight: '100vh', display: 'flex', background: '#0F172A', paddingTop: 64 }}>
@@ -396,50 +391,63 @@ export default function AuthPage() {
 
                     <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                         {otpStep ? (
-                            <OtpInput />
+                            <OtpInput register={register} />
                         ) : (
                             <>
                                 {/* ── BASIC INFO ── */}
                                 {isSignup && <SectionLabel text="Basic Information" />}
 
                                 {isSignup && (
-                                    <InputField label="Full Name *" name="name" icon={User} placeholder="Arjun Sharma"
-                                        validation={{ required: 'Name is required' }} />
+                                    <InputField 
+                                        label="Full Name *" name="name" icon={User} placeholder="Arjun Sharma"
+                                        register={register} errors={errors} validation={{ required: 'Name is required' }} 
+                                    />
                                 )}
 
                                 {(!isSignup && loginMethod === 'password') || isSignup ? (
-                                    <InputField label="Email Address *" name="email" type="email" icon={Mail} placeholder="you@college.edu"
-                                        validation={{ required: 'Email is required', pattern: { value: /\S+@\S+\.\S+/, message: 'Invalid email' } }} />
+                                    <InputField 
+                                        label="Email Address *" name="email" type="email" icon={Mail} placeholder="you@college.edu"
+                                        register={register} errors={errors}
+                                        validation={{ required: 'Email is required', pattern: { value: /\S+@\S+\.\S+/, message: 'Invalid email' } }} 
+                                    />
                                 ) : null}
 
                                 {(!isSignup && loginMethod === 'otp') || isSignup ? (
-                                    <InputField label="Phone Number *" name="phone" type="tel" icon={Phone} placeholder="+91 98765 43210" 
-                                        validation={{ required: 'Phone number is required' }} />
+                                    <InputField 
+                                        label="Phone Number *" name="phone" type="tel" icon={Phone} placeholder="+91 98765 43210" 
+                                        register={register} errors={errors} validation={{ required: 'Phone number is required' }} 
+                                    />
                                 ) : null}
 
                                 {(!isSignup && loginMethod === 'password') || isSignup ? (
-                                    <InputField label="Password *" name="password" icon={Lock} placeholder={isSignup ? 'Min 6 characters' : 'Enter password'}
-                                        validation={{ required: 'Password is required', minLength: isSignup ? { value: 6, message: 'Min 6 characters' } : undefined }} />
+                                    <InputField 
+                                        label="Password *" name="password" icon={Lock} placeholder={isSignup ? 'Min 6 characters' : 'Enter password'}
+                                        register={register} errors={errors} showPw={showPw} setShowPw={setShowPw} isSignup={isSignup} password={password} passwordStrength={passwordStrength}
+                                        validation={{ required: 'Password is required', minLength: isSignup ? { value: 6, message: 'Min 6 characters' } : undefined }} 
+                                    />
                                 ) : null}
 
                                 {isSignup && (
                                     <>
-                                        <InputField label="Confirm Password *" name="confirmPassword" icon={Lock} placeholder="Repeat password"
-                                            validation={{ required: 'Please confirm password' }} />
+                                        <InputField 
+                                            label="Confirm Password *" name="confirmPassword" icon={Lock} placeholder="Repeat password"
+                                            register={register} errors={errors} showPw={showPw} setShowPw={setShowPw}
+                                            validation={{ required: 'Please confirm password', validate: val => val === password || 'Passwords do not match' }} 
+                                        />
 
                                         {/* Gender row */}
                                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
-                                            <SelectField label="Gender" name="gender" options={[
+                                            <SelectField label="Gender" name="gender" register={register} errors={errors} options={[
                                                 { v: '', l: 'Select gender' },
                                                 { v: 'male', l: '♂ Male' },
                                                 { v: 'female', l: '♀ Female' },
                                                 { v: 'non-binary', l: '⚧ Non-binary' },
                                                 { v: 'prefer-not', l: 'Prefer not to say' },
                                             ]} />
-                                            <InputField label="Age" name="age" type="number" icon={Calendar} placeholder="20" />
+                                            <InputField label="Age" name="age" type="number" icon={Calendar} placeholder="20" register={register} errors={errors} />
                                         </div>
 
-                                        <SelectField label="State" name="state" options={[{ v: '', l: 'Select state' }, ...STATES.map(s => ({ v: s, l: s }))]} />
+                                        <SelectField label="State" name="state" register={register} errors={errors} options={[{ v: '', l: 'Select state' }, ...STATES.map(s => ({ v: s, l: s }))]} />
 
                                         {/* ── ROLE ── */}
                                         <SectionLabel text="Choose Your Role" />
@@ -466,7 +474,7 @@ export default function AuthPage() {
                                                     placeholder="Type your college or school name..."
                                                 />
                                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
-                                                    <SelectField label="Year of Study" name="yearOfStudy" options={[
+                                                    <SelectField label="Year of Study" name="yearOfStudy" register={register} errors={errors} options={[
                                                         { v: '', l: 'Select year' },
                                                         { v: '1', l: '1st Year' },
                                                         { v: '2', l: '2nd Year' },
@@ -478,7 +486,7 @@ export default function AuthPage() {
                                                         { v: 'school', l: 'School Student' },
                                                         { v: 'other', l: 'Other' },
                                                     ]} />
-                                                    <InputField label="Branch / Stream" name="branch" placeholder="CS, ECE, MBA..." />
+                                                    <InputField label="Branch / Stream" name="branch" placeholder="CS, ECE, MBA..." register={register} errors={errors} />
                                                 </div>
                                             </>
                                         )}
