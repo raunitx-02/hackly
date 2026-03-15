@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import RazorpayService from '../services/RazorpayService';
+import CashfreeService from '../services/CashfreeService';
 import toast from 'react-hot-toast';
 import { CheckCircle, ArrowRight } from 'lucide-react';
 import { PRICING_PLANS, PRICING_NOTE, FEATURES_COMPARISON } from '../data/pricingConfig';
@@ -65,8 +65,8 @@ export default function PricingPage() {
             priceValue: selectedPriceValue // Ensure RazorpayService picks up the exact numeric amount
         };
 
-        // 4. Trigger Razorpay Payment Flow
-        await RazorpayService.processSubscription(currentUser, planForPayment);
+        // 4. Trigger Cashfree Payment Flow
+        await CashfreeService.processSubscription(currentUser, planForPayment);
     };
 
     // Helper to format currency

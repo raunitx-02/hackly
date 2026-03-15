@@ -6,7 +6,7 @@ import {
     Github, Mail, Code2, Trophy, PlusCircle
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import RazorpayService from '../services/RazorpayService';
+import CashfreeService from '../services/CashfreeService';
 import toast from 'react-hot-toast';
 import { PRICING_PLANS, PRICING_NOTE } from '../data/pricingConfig';
 import { HOW_IT_WORKS_STEPS } from '../data/howItWorksConfig';
@@ -117,8 +117,8 @@ export default function LandingPage() {
             priceValue: selectedPriceValue // Ensure RazorpayService picks up the exact numeric amount
         };
 
-        // 4. Trigger Razorpay Payment Flow
-        await RazorpayService.processSubscription(currentUser, planForPayment);
+        // 4. Trigger Cashfree Payment Flow
+        await CashfreeService.processSubscription(currentUser, planForPayment);
     };
 
     useEffect(() => {
