@@ -33,6 +33,7 @@ import CookiePage from './pages/CookiePage';
 import GDPRPage from './pages/GDPRPage';
 import Footer from './components/Footer';
 import CompleteProfilePage from './pages/CompleteProfilePage';
+import EventRegistrationPage from './pages/EventRegistrationPage';
 
 // Pricing route: only for guests or organizers
 function PricingRoute({ children }) {
@@ -75,6 +76,7 @@ export default function App() {
           <Route path="/events/:id/feedback" element={<CampusPulseFeedback />} />
           <Route path="/events/:id/leaderboard" element={<LeaderboardPage />} />
           <Route path="/events/:id/projects" element={<PublicProjectsGallery />} />
+          <Route path="/events/:id/register" element={<ProtectedRoute requiredRole="participant"><EventRegistrationPage /></ProtectedRoute>} />
           <Route path="/pricing" element={<PricingRoute><PricingPage /></PricingRoute>} />
           <Route path="/payment-success" element={<ProtectedRoute><PaymentSuccessPage /></ProtectedRoute>} />
 

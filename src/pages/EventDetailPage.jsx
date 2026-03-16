@@ -23,200 +23,6 @@ function TabButton({ label, active, onClick }) {
     );
 }
 
-function RegisterModal({ event, onClose }) {
-    const { currentUser } = useAuth();
-    const [mode, setMode] = useState('create');
-    const [teamName, setTeamName] = useState('');
-    const [selectedCategory, setSelectedCategory] = useState('');
-    const [appData, setAppData] = useState({});
-    const [submitting, setSubmitting] = useState(false);
-    const navigate = useNavigate();
-
-    const handleRegister = async () => {
-        if (!currentUser) { toast.error('Please login first'); navigate('/auth'); return; }
-
-        if (event.registrationCategories?.length > 0 && !selectedCategory) {
-            toast.error('Please select a registration category');
-            return;
-        }
-
-        const isReview = event.registrationMode === 'review';
-        if (isReview && (!appData.motivation || !appData.skills)) {
-            toast.error('Please fill in motivation and skills.');
-            return;
-        }
-
-        setSubmitting(true);
-        try {
-            await runTransaction(db, async (transaction) => {
-                const eventRef = doc(db, 'events', event.id);
-                const eventSnap = await transaction.get(eventRef);
-                
-                if (!eventSnap.exists()) throw new Error("Event does not exist!");
-                
-                const eventData = eventSnap.data();
-                const currentCounts = eventData.categoryCounts || {};
-                
-                if (selectedCategory) {
-                    const category = eventData.registrationCategories.find(c => c.name === selectedCategory);
-                    const currentCount = currentCounts[selectedCategory] || 0;
-                    
-                    if (category && currentCount >= category.limit) {
-                        throw new Error(`The category "${selectedCategory}" is full.`);
-                    }
-                    
-                    currentCounts[selectedCategory] = currentCount + 1;
-                }
-
-                // Create registration doc
-                const regData = {
-                    eventId: event.id, userId: currentUser.uid,
-                    registeredAt: new Date().toISOString(),
-                    status: isReview ? 'pending' : 'accepted',
-                    applicationData: isReview ? appData : null,
-                    category: selectedCategory || null
-                };
-                
-                const regRef = doc(collection(db, 'registrations'));
-                transaction.set(regRef, regData);
-
-                if (mode === 'create' && teamName) {
-                    const teamData = {
-                        eventId: event.id, teamName: teamName.trim(),
-                        leaderId: currentUser.uid, members: [currentUser.uid],
-                        isOpen: true, createdAt: new Date().toISOString(),
-                        status: isReview ? 'pending' : 'accepted',
-                        applicationData: isReview ? appData : null,
-                        category: selectedCategory || null
-                    };
-                    const teamRef = doc(collection(db, 'teams'));
-                    transaction.set(teamRef, teamData);
-                }
-
-                // Update event counts
-                transaction.update(eventRef, {
-                    categoryCounts: currentCounts,
-                    registered: (eventData.registered || 0) + 1
-                });
-            });
-
-            toast.success('Registered successfully! 🎉');
-            onClose();
-        } catch (err) {
-            toast.error('Registration failed: ' + err.message);
-        } finally {
-            setSubmitting(false);
-        }
-    };
-
-    return (
-        <div style={{
-            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20,
-        }}>
-            <div style={{ background: '#1E293B', borderRadius: 20, border: '1px solid #334155', padding: 32, width: '100%', maxWidth: 460 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-                    <h3 style={{ fontSize: 20, fontWeight: 700, color: '#F8FAFC' }}>Register for {event.title}</h3>
-                    <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748B', padding: 4 }}>
-                        <X size={20} />
-                    </button>
-                </div>
-
-                <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
-                    {['create', 'join'].map(m => (
-                        <button key={m} onClick={() => setMode(m)} style={{
-                            flex: 1, padding: '10px', borderRadius: 8, border: '1px solid',
-                            cursor: 'pointer', fontWeight: 600, fontSize: 14, transition: 'all 0.15s',
-                            background: mode === m ? 'linear-gradient(135deg,#3B82F6,#8B5CF6)' : '#0F172A',
-                            borderColor: mode === m ? 'transparent' : '#334155',
-                            color: mode === m ? 'white' : '#94A3B8',
-                        }}>
-                            {m === 'create' ? '🆕 Create Team' : '🤝 Join a Team'}
-                        </button>
-                    ))}
-                </div>
-
-                {mode === 'create' ? (
-                    <div>
-                        <label className="label">Team Name</label>
-                        <input className="input" placeholder="Team Thunderbolt" value={teamName}
-                            onChange={e => setTeamName(e.target.value)} style={{ marginBottom: 20 }} />
-                    </div>
-                ) : (
-                    <p style={{ color: '#94A3B8', fontSize: 14, marginBottom: 20 }}>
-                        You'll be registered solo. Visit the Teams page to join an open team.
-                    </p>
-                )}
-
-                {event.registrationCategories?.length > 0 && (
-                    <div style={{ marginBottom: 24, padding: 16, background: '#0F172A', borderRadius: 12, border: '1px solid #334155' }}>
-                        <label className="label">Select Category *</label>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 10 }}>
-                            {event.registrationCategories.map(cat => {
-                                const count = event.categoryCounts?.[cat.name] || 0;
-                                const isFull = count >= cat.limit;
-                                return (
-                                    <button 
-                                        key={cat.name} 
-                                        onClick={() => !isFull && setSelectedCategory(cat.name)}
-                                        style={{
-                                            padding: '12px 16px', borderRadius: 10, border: '1px solid',
-                                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                            cursor: isFull ? 'not-allowed' : 'pointer', transition: '0.2s',
-                                            background: selectedCategory === cat.name ? 'rgba(59,130,246,0.1)' : 'rgba(255,255,255,0.02)',
-                                            borderColor: selectedCategory === cat.name ? '#3B82F6' : '#334155',
-                                            opacity: isFull ? 0.5 : 1
-                                        }}
-                                    >
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                            <div style={{ 
-                                                width: 18, height: 18, borderRadius: '50%', border: '2px solid',
-                                                borderColor: selectedCategory === cat.name ? '#3B82F6' : '#475569',
-                                                display: 'flex', alignItems: 'center', justifyContent: 'center'
-                                            }}>
-                                                {selectedCategory === cat.name && <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#3B82F6' }} />}
-                                            </div>
-                                            <span style={{ fontSize: 14, fontWeight: 600, color: '#F8FAFC' }}>{cat.name}</span>
-                                        </div>
-                                        <div style={{ textAlign: 'right' }}>
-                                            <div style={{ fontSize: 12, fontWeight: 700, color: isFull ? '#EF4444' : '#10B981' }}>
-                                                {isFull ? 'Sold Out' : `${cat.limit - count} left`}
-                                            </div>
-                                            <div style={{ fontSize: 10, color: '#64748B' }}>Limit: {cat.limit}</div>
-                                        </div>
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </div>
-                )}
-
-                {event.registrationMode === 'review' && (
-                    <div style={{ marginBottom: 24, borderTop: '1px solid #334155', paddingTop: 20 }}>
-                        <h4 style={{ fontSize: 14, fontWeight: 700, color: '#F8FAFC', marginBottom: 16 }}>Application Details</h4>
-                        {ORGANIZER_CONFIG.applicationFields.map(f => (
-                            <div key={f.id} style={{ marginBottom: 16 }}>
-                                <label className="label">{f.label} {f.id !== 'pastProjects' && '*'}</label>
-                                {f.type === 'textarea' ? (
-                                    <textarea className="input" rows={3} value={appData[f.id] || ''}
-                                        onChange={e => setAppData({ ...appData, [f.id]: e.target.value })} />
-                                ) : (
-                                    <input className="input" value={appData[f.id] || ''}
-                                        onChange={e => setAppData({ ...appData, [f.id]: e.target.value })} />
-                                )}
-                            </div>
-                        ))}
-                    </div>
-                )}
-
-                <button onClick={handleRegister} disabled={submitting} className="btn-gradient"
-                    style={{ width: '100%', justifyContent: 'center', minHeight: 44, opacity: submitting ? 0.7 : 1 }}>
-                    {submitting ? 'Registering...' : 'Confirm Registration'}
-                </button>
-            </div>
-        </div>
-    );
-}
 
 export default function EventDetailPage() {
     const { id } = useParams();
@@ -225,7 +31,6 @@ export default function EventDetailPage() {
     const [adoptedTracks, setAdoptedTracks] = useState([]);
     const [loading, setLoading] = useState(true);
     const [tab, setTab] = useState('overview');
-    const [showRegModal, setShowRegModal] = useState(false);
     const [openPS, setOpenPS] = useState(null);
     const { currentUser } = useAuth();
     const navigate = useNavigate();
@@ -328,7 +133,7 @@ export default function EventDetailPage() {
                                 </div>
                             </div>
                             <div style={{ display: 'flex', gap: 12, marginBottom: 28 }}>
-                                <button onClick={() => setShowRegModal(true)} className="btn-gradient" style={{ fontSize: 16, padding: '13px 28px' }}>
+                                <button onClick={() => navigate(`/events/${id}/register`)} className="btn-gradient" style={{ fontSize: 16, padding: '13px 28px' }}>
                                     Register Now 🚀
                                 </button>
                                 {event.publicProjects && (
@@ -584,7 +389,6 @@ export default function EventDetailPage() {
                 </div>
             </div>
 
-            {showRegModal && <RegisterModal event={event} onClose={() => setShowRegModal(false)} />}
             <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
     );
