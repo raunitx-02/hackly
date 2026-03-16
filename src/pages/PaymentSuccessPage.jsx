@@ -6,9 +6,9 @@ import { PRICING_PLANS } from '../data/pricingConfig';
 export default function PaymentSuccessPage() {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
-    const planName = searchParams.get('plan') || 'Pro';
+    const planName = searchParams.get('plan') || 'Free / Trial';
 
-    const plan = PRICING_PLANS.find(p => p.name === planName) || PRICING_PLANS[1];
+    const plan = PRICING_PLANS.find(p => p.name === planName) || PRICING_PLANS[0];
     const features = plan.features || [];
 
     const [visibleFeatures, setVisibleFeatures] = useState([]);

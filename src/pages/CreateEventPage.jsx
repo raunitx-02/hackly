@@ -1,14 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, where, getDocs, count } from 'firebase/firestore';
 import { db, functions } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import DashboardLayout from '../components/DashboardLayout';
 import toast from 'react-hot-toast';
 import {
-    CheckCircle, ChevronRight, ChevronLeft, Plus, Trash2,
-    CalendarDays, MapPin, Users, Trophy, Star, Eye, Settings, Sparkles, X, Activity
+    CalendarDays, MapPin, Users, Trophy, Star, Eye, Settings, Sparkles, X, Activity, Tag
 } from 'lucide-react';
 import { ORGANIZER_CONFIG } from '../data/advancedOrganizerConfig';
 import { AI_GENERATOR_CONFIG } from '../data/aiGeneratorConfig';
@@ -113,6 +112,62 @@ export default function CreateEventPage() {
     const { register, handleSubmit, watch, formState: { errors }, trigger, getValues } = useForm({
         defaultValues: { mode: 'Online', maxTeamSize: 4, maxParticipants: 500, type: 'Hackathon', registrationMode: 'open', anonymousJudging: false, publicProjects: false }
     });
+
+    const [eventCount, setEventCount] = useState(null);
+    const [fetchingLimit, setFetchingLimit] = useState(true);
+
+    useEffect(() => {
+        if (currentUser) {
+            const fetchEventCount = async () => {
+                try {
+                    const q = query(collection(db, 'events'), where('organizerId', '==', currentUser.uid));
+                    const snap = await getDocs(q);
+                    setEventCount(snap.size);
+                } catch (e) {
+                    console.error("Error fetching event count:", e);
+                } finally {
+                    setFetchingLimit(false);
+                }
+            };
+            fetchEventCount();
+        }
+    }, [currentUser]);
+
+    const plan = userProfile?.currentPlan || 'Free / Trial';
+    const isFree = plan === 'Free / Trial';
+    const isStarter = plan === 'Starter';
+    
+    // Limits
+    const limit = isFree ? 1 : (isStarter ? 3 : Infinity);
+    const hasReachedLimit = eventCount !== null && eventCount >= limit;
+
+    if (loading || fetchingLimit) return null;
+
+    if ((isFree || hasReachedLimit) && userProfile?.role !== 'admin') {
+        const title = hasReachedLimit ? "Event Limit Reached" : "Upgrade to Launch Events";
+        const message = hasReachedLimit 
+            ? `Your current ${plan} plan allows up to ${limit} event${limit > 1 ? 's' : ''}. You have already created ${eventCount} event${eventCount > 1 ? 's' : ''}.`
+            : "Event creation is exclusive to our paid plans. Support Hackly and unlock professional tools by upgrading today! 🚀";
+
+        return (
+            <DashboardLayout>
+                <div style={{ textAlign: 'center', padding: '100px 20px' }}>
+                    <div style={{ background: '#1E293B', padding: 40, borderRadius: 24, border: '1px solid #334155', maxWidth: 500, margin: '0 auto' }}>
+                        <div style={{ width: 64, height: 64, background: 'rgba(59,130,246,0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
+                            <Activity size={32} color="#3B82F6" />
+                        </div>
+                        <h2 style={{ fontSize: 24, fontWeight: 800, color: '#F8FAFC', marginBottom: 16 }}>{title}</h2>
+                        <p style={{ color: '#94A3B8', fontSize: 16, marginBottom: 32, lineHeight: 1.6 }}>
+                            {message}
+                        </p>
+                        <button onClick={() => navigate('/pricing')} className="btn-gradient" style={{ width: '100%', padding: '14px', fontSize: 16 }}>
+                            View Pricing & Plans
+                        </button>
+                    </div>
+                </div>
+            </DashboardLayout>
+        );
+    }
 
     const formData = watch();
 

@@ -42,8 +42,8 @@ class CashfreeService {
                 
                 try {
                     await activateFree({ planName: plan.name });
-                    toast.success('Free tier activated! Welcome to the Growth plan. 🚀', { id: 'payment' });
-                    setTimeout(() => window.location.href = '/dashboard', 1500);
+                    toast.success(`${plan.name} activated successfully! 🚀`, { id: 'payment' });
+                    setTimeout(() => window.location.href = `/payment-success?plan=${encodeURIComponent(plan.name)}`, 1500);
                     return;
                 } catch (error) {
                     console.error('[CashfreeService] Free Activation Failed:', error);
