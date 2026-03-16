@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { collection, addDoc, serverTimestamp, query, where, getDocs, count } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db, functions } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import DashboardLayout from '../components/DashboardLayout';
@@ -110,7 +110,10 @@ export default function CreateEventPage() {
     const [submitting, setSubmitting] = useState(false);
     const navigate = useNavigate();
 
-    const { register, handleSubmit, watch, formState: { errors }, trigger, getValues } = useForm({
+    const [searchParams] = useSearchParams();
+    const editId = searchParams.get('edit');
+
+    const { register, handleSubmit, watch, formState: { errors }, trigger, getValues, reset } = useForm({
         defaultValues: { mode: 'Online', maxTeamSize: 4, maxParticipants: 500, type: 'Hackathon', registrationMode: 'open', anonymousJudging: false, publicProjects: false }
     });
 
@@ -119,23 +122,63 @@ export default function CreateEventPage() {
 
     useEffect(() => {
         if (currentUser) {
-            const fetchEventCount = async () => {
+            const fetchData = async () => {
                 try {
+                    // Fetch event count for limits
                     const q = query(collection(db, 'events'), where('organizerId', '==', currentUser.uid));
                     const snap = await getDocs(q);
                     setEventCount(snap.size);
+
+                    // If editing, fetch event details
+                    if (editId) {
+                        const eventSnap = await getDoc(doc(db, 'events', editId));
+                        if (eventSnap.exists()) {
+                            const data = eventSnap.data();
+                            if (data.organizerId !== currentUser.uid) {
+                                toast.error("Unauthorized");
+                                navigate('/dashboard');
+                                return;
+                            }
+                            // Pre-fill form
+                            reset({
+                                title: data.title,
+                                type: data.type,
+                                tagline: data.tagline,
+                                description: data.description,
+                                college: data.college,
+                                city: data.city,
+                                startDate: data.startDate,
+                                endDate: data.endDate,
+                                registrationDeadline: data.registrationDeadline,
+                                maxTeamSize: data.maxTeamSize,
+                                maxParticipants: data.maxParticipants,
+                                mode: data.mode,
+                                registrationMode: data.registrationMode,
+                                anonymousJudging: data.anonymousJudging,
+                                publicProjects: data.publicProjects,
+                                prize1: data.prizes?.first,
+                                prize2: data.prizes?.second,
+                                prize3: data.prizes?.third,
+                                prizeTotal: data.prizes?.total,
+                            });
+                            setProblemStatements(data.problemStatements || ['']);
+                            setJudges(data.judges || ['']);
+                            setCriteria(data.judgingCriteria || []);
+                            setRegistrationCategories(data.registrationCategories || []);
+                        }
+                    }
                 } catch (e) {
-                    console.error("Error fetching event count:", e);
+                    console.error("Error fetching data:", e);
                 } finally {
                     setFetchingLimit(false);
                 }
             };
-            fetchEventCount();
+            fetchData();
         } else if (!loading) {
             setFetchingLimit(false);
             navigate('/auth?redirect=/events/create');
         }
-    }, [currentUser, loading, navigate]);
+    }, [currentUser, loading, navigate, editId, reset]);
 
     const plan = userProfile?.currentPlan || 'Free / Trial';
     const isFree = plan === 'Free / Trial';
@@ -143,7 +186,8 @@ export default function CreateEventPage() {
     
     // Limits
     const limit = isFree ? 1 : (isStarter ? 3 : Infinity);
-    const hasReachedLimit = eventCount !== null && eventCount >= limit;
+    // If editing, we allow them to proceed even if they are at the limit
+    const hasReachedLimit = eventCount !== null && eventCount >= limit && !editId;
 
     if (loading || fetchingLimit) return null;
 
@@ -203,7 +247,7 @@ export default function CreateEventPage() {
 
         setSubmitting(true);
         try {
-            const doc = {
+            const eventDoc = {
                 title: data.title, type: data.type, tagline: data.tagline || '',
                 description: data.description || '', college: data.college || userProfile?.college || '',
                 city: data.city || '', organizerId: currentUser.uid,
@@ -220,13 +264,17 @@ export default function CreateEventPage() {
                 judges: judges.filter(Boolean),
                 judgingCriteria: criteria,
                 status: status === 'published' ? 'published' : 'draft',
-                registered: 0,
                 registrationCategories: registrationCategories.filter(c => c.name.trim()),
-                categoryCounts: {},
-                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
             };
-            const ref = await addDoc(collection(db, 'events'), doc);
-            toast.success(status === 'published' ? 'Event submitted for review! 🚀' : 'Saved as draft');
+
+            if (editId) {
+                await updateDoc(doc(db, 'events', editId), eventDoc);
+                toast.success(status === 'published' ? 'Event updated successfully! 🚀' : 'Draft updated');
+            } else {
+                await addDoc(collection(db, 'events'), { ...eventDoc, createdAt: new Date().toISOString(), registered: 0, categoryCounts: {} });
+                toast.success(status === 'published' ? 'Event published! 🚀' : 'Saved as draft');
+            }
             navigate(`/dashboard/events`);
         } catch (err) {
             toast.error('Failed to save event: ' + err.message);
