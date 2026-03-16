@@ -16,10 +16,24 @@ export default function ContactPage() {
         e.preventDefault();
         if (!form.name || !form.email || !form.message) { toast.error('Please fill in all required fields'); return; }
         setSending(true);
-        await new Promise(r => setTimeout(r, 1200));
-        toast.success('Message sent! We\'ll get back to you within 24 hours. 📬');
-        setForm({ name: '', email: '', subject: '', message: '' });
-        setSending(false);
+        try {
+            const { collection, addDoc, serverTimestamp } = await import('firebase/firestore');
+            const { db } = await import('../lib/firebase');
+            
+            await addDoc(collection(db, 'contactMessages'), {
+                ...form,
+                status: 'unread',
+                createdAt: serverTimestamp()
+            });
+
+            toast.success('Message sent! We\'ll get back to you within 24 hours. 📬');
+            setForm({ name: '', email: '', subject: '', message: '' });
+        } catch (error) {
+            console.error('Error sending message:', error);
+            toast.error('Failed to send message. Please try again.');
+        } finally {
+            setSending(false);
+        }
     };
 
     return (

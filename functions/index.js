@@ -391,6 +391,48 @@ exports.notifyOnNewCampusPartner = functions.firestore
     });
 
 /**
+ * Trigger: On New Contact Message
+ */
+exports.notifyOnContactMessage = functions.firestore
+    .document('contactMessages/{docId}')
+    .onCreate(async (snap, context) => {
+        const data = snap.data();
+
+        const msg = `
+📩 <b>New Contact Message!</b>
+
+<b>Name:</b> ${data.name || 'N/A'}
+<b>Email:</b> ${data.email || 'N/A'}
+<b>Subject:</b> ${data.subject || 'N/A'}
+
+<b>Message:</b>
+<i>"${data.message || 'No message content.'}"</i>
+`;
+        await sendTelegramNotification(msg);
+    });
+
+/**
+ * Trigger: On New Event Feedback
+ */
+exports.notifyOnEventFeedback = functions.firestore
+    .document('eventFeedback/{docId}')
+    .onCreate(async (snap, context) => {
+        const data = snap.data();
+
+        const msg = `
+💬 <b>New Event Feedback!</b>
+
+<b>Event ID:</b> ${data.eventId || 'N/A'}
+<b>User Name:</b> ${data.userName || 'N/A'}
+<b>Rating:</b> ${data.rating ? '⭐'.repeat(data.rating) : 'N/A'}
+
+<b>Feedback:</b>
+<i>"${data.feedback || 'No comments provided.'}"</i>
+`;
+        await sendTelegramNotification(msg);
+    });
+
+/**
  * ─── GEMINI AI INTEGRATION ───
  */
 
