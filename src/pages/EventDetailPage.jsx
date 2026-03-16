@@ -110,10 +110,10 @@ export default function EventDetailPage() {
                                 fontSize: 12, fontWeight: 700, marginBottom: 16,
                                 background: `${typeColor}25`, color: typeColor, border: `1px solid ${typeColor}40`,
                             }}>{event.type}</span>
-                            <h1 style={{ fontSize: 'clamp(28px, 4vw, 48px)', fontWeight: 800, color: '#F8FAFC', marginBottom: 8, lineHeight: 1.2 }}>
+                            <h1 style={{ fontSize: 'clamp(24px, 5vw, 42px)', fontWeight: 800, color: '#F8FAFC', marginBottom: 8, lineHeight: 1.2 }}>
                                 {event.title}
                             </h1>
-                            <p style={{ color: '#94A3B8', fontSize: 17, marginBottom: 20 }}>{event.tagline}</p>
+                            <p style={{ color: '#94A3B8', fontSize: 'clamp(14px, 2vw, 17px)', marginBottom: 20 }}>{event.tagline}</p>
                             <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', marginBottom: 28 }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                                     <MapPin size={14} color="#64748B" />
@@ -132,14 +132,16 @@ export default function EventDetailPage() {
                                     <span style={{ color: '#94A3B8', fontSize: 14 }}>{event.mode || 'Online'}</span>
                                 </div>
                             </div>
-                            <div style={{ display: 'flex', gap: 12, marginBottom: 28 }}>
-                                <button onClick={() => navigate(`/events/${id}/register`)} className="btn-gradient" style={{ fontSize: 16, padding: '13px 28px' }}>
+                            <div style={{ display: 'flex', gap: 12, marginBottom: 28, flexWrap: 'wrap' }}>
+                                <button onClick={() => navigate(`/events/${id}/register`)} className="btn-gradient" style={{ fontSize: 16, padding: '13px 28px', flex: '1 1 auto', justifyContent: 'center' }}>
                                     Register Now 🚀
                                 </button>
                                 {event.publicProjects && (
-                                    <Link to={`/events/${eventId}/projects`} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '13px 28px', background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: 12, color: '#3B82F6', fontSize: 16, fontWeight: 600, textDecoration: 'none', transition: 'all 0.2s' }}>
+                                    <Link to={`/events/${id}/projects`} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '13px 28px', background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: 12, color: '#3B82F6', fontSize: 16, fontWeight: 600, textDecoration: 'none', transition: 'all 0.2s', flex: '1 1 auto', justifyContent: 'center' }}>
                                         <ExternalLink size={18} /> View Project Gallery
                                     </Link>
+                                ) || (
+                                    <div style={{ flex: '1 1 100%', display: 'none' }} />
                                 )}
                             </div>
                         </div>
@@ -156,7 +158,12 @@ export default function EventDetailPage() {
                 {/* Tab Content */}
                 <div className="container" style={{ paddingTop: 40, paddingBottom: 80 }}>
                     {tab === 'overview' && (
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 32 }}>
+                        <div style={{ 
+                            display: 'grid', 
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 700px), 1fr))',
+                            gridAutoFlow: 'dense',
+                            gap: 32 
+                        }}>
                             {/* Left */}
                             <div>
                                 {event.description && (

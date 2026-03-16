@@ -182,7 +182,7 @@ export default function LandingPage() {
                 }} />
 
                 <div className="container" style={{ position: 'relative', zIndex: 1 }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 64, alignItems: 'center' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: '32px 64px', alignItems: 'center' }}>
                         {/* Left text */}
                         <div className="animate-fade-up">
                             <div style={{
@@ -448,7 +448,7 @@ export default function LandingPage() {
                             Loved by <span className="gradient-text">College Organizers</span>
                         </h2>
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 20 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 20 }}>
                         {TESTIMONIALS.map(t => (
                             <div key={t.name} className="card" style={{ display: 'flex', flexDirection: 'column' }}>
                                 <div style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
@@ -525,7 +525,7 @@ export default function LandingPage() {
                             </div>
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 20, maxWidth: 1200, margin: '0 auto' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))', gap: 20, maxWidth: 1200, margin: '0 auto' }}>
                             {PRICING_PLANS.map(plan => {
                                 const isCurrentPlan = userProfile?.currentPlan === plan.name;
                                 const displayPrice = isAnnual ? plan.annualPrice : plan.monthlyPrice;

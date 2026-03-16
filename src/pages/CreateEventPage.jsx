@@ -24,30 +24,42 @@ const STEPS = [
 
 function StepIndicator({ current }) {
     return (
-        <div style={{ display: 'flex', alignItems: 'center', marginBottom: 40 }}>
+        <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            marginBottom: 40,
+            overflowX: 'auto',
+            paddingBottom: 12,
+            gap: 12
+        }} className="no-scrollbar">
             {STEPS.map((s, i) => (
-                <div key={s.num} style={{ display: 'flex', alignItems: 'center', flex: i < STEPS.length - 1 ? 1 : 'none' }}>
+                <div key={s.num} style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    flex: i < STEPS.length - 1 ? 1 : 'none',
+                    minWidth: 'fit-content'
+                }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
                         <div style={{
-                            width: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontWeight: 700, fontSize: 14, transition: 'all 0.2s',
+                            width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontWeight: 700, fontSize: 13, transition: 'all 0.2s',
                             background: current > s.num ? 'linear-gradient(135deg,#3B82F6,#8B5CF6)' :
                                 current === s.num ? 'linear-gradient(135deg,#3B82F6,#8B5CF6)' : '#1E293B',
                             border: current >= s.num ? 'none' : '2px solid #334155',
                             color: current >= s.num ? 'white' : '#64748B',
                         }}>
-                            {current > s.num ? <CheckCircle size={18} /> : s.num}
+                            {current > s.num ? <CheckCircle size={16} /> : s.num}
                         </div>
                         <span style={{
-                            fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap',
+                            fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap',
                             color: current >= s.num ? '#F8FAFC' : '#64748B',
-                        }} className="step-label">
+                        }}>
                             {s.label}
                         </span>
                     </div>
                     {i < STEPS.length - 1 && (
                         <div style={{
-                            flex: 1, height: 2, margin: '0 12px',
+                            flex: '0 0 40px', height: 2, margin: '0 8px',
                             background: current > s.num ? 'linear-gradient(90deg,#3B82F6,#8B5CF6)' : '#334155',
                             transition: 'background 0.3s',
                         }} />
@@ -84,7 +96,11 @@ function Field({ label, error, children }) {
 
 function Row({ children, cols = 2 }) {
     return (
-        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 16 }}>
+        <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: `repeat(auto-fit, minmax(min(100%, ${100/cols}% === 100% ? 100% : 300px), 1fr))`,
+            gap: 16 
+        }}>
             {children}
         </div>
     );

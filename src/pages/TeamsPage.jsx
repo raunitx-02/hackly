@@ -60,7 +60,7 @@ export default function TeamsPage() {
                     <h1 style={{ fontSize: 28, fontWeight: 800, color: '#F8FAFC', marginBottom: 8 }}>Team Management</h1>
                     <p style={{ color: '#64748B', marginBottom: 36 }}>Create or join a team to participate in this event</p>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 24 }}>
                         {/* Create Team */}
                         {!myTeam && (
                             <div style={{ background: '#1E293B', borderRadius: 16, border: '1px solid #334155', padding: 28 }}>

@@ -126,7 +126,16 @@ export default function LeaderboardPage() {
                                     <h2 style={{ textAlign: 'center', fontSize: 18, fontWeight: 700, color: '#94A3B8', marginBottom: 32, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
                                         🏆 Top Performers
                                     </h2>
-                                    <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 16, maxWidth: 560, margin: '0 auto' }}>
+                                    <div style={{ 
+                                        display: 'flex', 
+                                        alignItems: 'flex-end', 
+                                        justifyContent: 'center', 
+                                        gap: 16, 
+                                        maxWidth: 560, 
+                                        margin: '0 auto',
+                                        overflowX: 'auto',
+                                        padding: '10px 0'
+                                    }} className="no-scrollbar">
                                         {[2, 1, 3].map(rank => {
                                             const entry = aggregated[rank - 1];
                                             return entry ? <PodiumItem key={rank} entry={entry} rank={rank} /> : null;
