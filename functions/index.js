@@ -1,6 +1,6 @@
 const functions = require('firebase-functions/v1');
 const admin = require('firebase-admin');
-const { Cashfree } = require('cashfree-pg');
+const { Cashfree, CFEnvironment } = require('cashfree-pg');
 const crypto = require('crypto');
 const axios = require('axios');
 const { GoogleGenAI } = require('@google/genai');
@@ -203,9 +203,10 @@ exports.createCashfreeOrder = functions.region('us-central1').https.onCall(async
         throw new functions.https.HttpsError('failed-precondition', 'Payment gateway not configured.');
     }
 
-    Cashfree.XClientId = APP_ID;
-    Cashfree.XClientSecret = SECRET_KEY;
-    Cashfree.XEnvironment = Cashfree.Environment.SANDBOX; // Change to PRODUCTION for live
+    const cf = new Cashfree();
+    cf.XClientId = APP_ID;
+    cf.XClientSecret = SECRET_KEY;
+    cf.XEnvironment = CFEnvironment.PRODUCTION; // Switched to CFEnvironment.PRODUCTION for live
 
     try {
         const request = {
@@ -217,12 +218,12 @@ exports.createCashfreeOrder = functions.region('us-central1').https.onCall(async
                 customer_phone: "9999999999" // Fallback if phone not available
             },
             order_meta: {
-                return_url: "https://eventforge-d6dbe.web.app/dashboard?order_id={order_id}"
+                return_url: "https://hackly.online/dashboard?order_id={order_id}"
             },
             order_note: planName
         };
 
-        const response = await Cashfree.PGCreateOrder("2023-08-01", request);
+        const response = await cf.PGCreateOrder(request);
         const order = response.data;
 
         console.log('[Cashfree] Order Created:', order.order_id);

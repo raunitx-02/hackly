@@ -106,6 +106,7 @@ export default function CreateEventPage() {
 
     const [judges, setJudges] = useState(['']);
     const [criteria, setCriteria] = useState([{ name: 'Innovation', weight: 25 }, { name: 'Technical', weight: 25 }, { name: 'UI/UX', weight: 25 }, { name: 'Presentation', weight: 25 }]);
+    const [registrationCategories, setRegistrationCategories] = useState([]);
     const [submitting, setSubmitting] = useState(false);
     const navigate = useNavigate();
 
@@ -161,6 +162,8 @@ export default function CreateEventPage() {
                 judgingCriteria: criteria,
                 status: status === 'published' ? 'pending_review' : 'draft',
                 registered: 0,
+                registrationCategories: registrationCategories.filter(c => c.name.trim()),
+                categoryCounts: {},
                 createdAt: new Date().toISOString(),
             };
             const ref = await addDoc(collection(db, 'events'), doc);
@@ -321,6 +324,30 @@ export default function CreateEventPage() {
                                         <input type="number" className="input" min={10} {...register('maxParticipants')} />
                                     </Field>
                                 </Row>
+                            </div>
+                        </SectionCard>
+
+                        <SectionCard title="Registration Categories (Optional)" icon={Tag}>
+                            <p style={{ color: '#94A3B8', fontSize: 13, marginBottom: 16 }}>
+                                Define categories responders can select (e.g. Tracks, Roles). Set limits to control intake.
+                            </p>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                {registrationCategories.map((cat, i) => (
+                                    <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 120px auto', gap: 8, alignItems: 'center' }}>
+                                        <input className="input" placeholder="Category Name (e.g. Frontend)" value={cat.name}
+                                            onChange={e => { const a = [...registrationCategories]; a[i].name = e.target.value; setRegistrationCategories(a); }} />
+                                        <input type="number" className="input" placeholder="Limit" value={cat.limit} min={1}
+                                            onChange={e => { const a = [...registrationCategories]; a[i].limit = Number(e.target.value); setRegistrationCategories(a); }} />
+                                        <button type="button" onClick={() => setRegistrationCategories(registrationCategories.filter((_, k) => k !== i))}
+                                            style={{ padding: '0 12px', height: 44, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, cursor: 'pointer', color: '#EF4444', flexShrink: 0 }}>
+                                            <Trash2 size={15} />
+                                        </button>
+                                    </div>
+                                ))}
+                                <button type="button" onClick={() => setRegistrationCategories([...registrationCategories, { name: '', limit: 50 }])}
+                                    style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 16px', background: 'rgba(59,130,246,0.1)', border: '1px dashed rgba(59,130,246,0.4)', borderRadius: 8, color: '#3B82F6', cursor: 'pointer', fontSize: 13, fontWeight: 600, alignSelf: 'flex-start' }}>
+                                    <Plus size={15} /> Add Category
+                                </button>
                             </div>
                         </SectionCard>
 

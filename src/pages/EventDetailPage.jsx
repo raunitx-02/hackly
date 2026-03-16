@@ -1,5 +1,6 @@
+import React, { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { doc, onSnapshot, collection, query, where, addDoc, getDocs, updateDoc } from 'firebase/firestore';
+import { doc, onSnapshot, collection, query, where, addDoc, getDocs, updateDoc, runTransaction } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
@@ -26,12 +27,18 @@ function RegisterModal({ event, onClose }) {
     const { currentUser } = useAuth();
     const [mode, setMode] = useState('create');
     const [teamName, setTeamName] = useState('');
+    const [selectedCategory, setSelectedCategory] = useState('');
     const [appData, setAppData] = useState({});
     const [submitting, setSubmitting] = useState(false);
     const navigate = useNavigate();
 
     const handleRegister = async () => {
         if (!currentUser) { toast.error('Please login first'); navigate('/auth'); return; }
+
+        if (event.registrationCategories?.length > 0 && !selectedCategory) {
+            toast.error('Please select a registration category');
+            return;
+        }
 
         const isReview = event.registrationMode === 'review';
         if (isReview && (!appData.motivation || !appData.skills)) {
@@ -41,21 +48,58 @@ function RegisterModal({ event, onClose }) {
 
         setSubmitting(true);
         try {
-            const regRef = await addDoc(collection(db, 'registrations'), {
-                eventId: event.id, userId: currentUser.uid,
-                registeredAt: new Date().toISOString(),
-                status: isReview ? 'pending' : 'accepted',
-                applicationData: isReview ? appData : null,
-            });
-            if (mode === 'create' && teamName) {
-                await addDoc(collection(db, 'teams'), {
-                    eventId: event.id, teamName: teamName.trim(),
-                    leaderId: currentUser.uid, members: [currentUser.uid],
-                    isOpen: true, createdAt: new Date().toISOString(),
+            await runTransaction(db, async (transaction) => {
+                const eventRef = doc(db, 'events', event.id);
+                const eventSnap = await transaction.get(eventRef);
+                
+                if (!eventSnap.exists()) throw new Error("Event does not exist!");
+                
+                const eventData = eventSnap.data();
+                const currentCounts = eventData.categoryCounts || {};
+                
+                if (selectedCategory) {
+                    const category = eventData.registrationCategories.find(c => c.name === selectedCategory);
+                    const currentCount = currentCounts[selectedCategory] || 0;
+                    
+                    if (category && currentCount >= category.limit) {
+                        throw new Error(`The category "${selectedCategory}" is full.`);
+                    }
+                    
+                    currentCounts[selectedCategory] = currentCount + 1;
+                }
+
+                // Create registration doc
+                const regData = {
+                    eventId: event.id, userId: currentUser.uid,
+                    registeredAt: new Date().toISOString(),
                     status: isReview ? 'pending' : 'accepted',
                     applicationData: isReview ? appData : null,
+                    category: selectedCategory || null
+                };
+                
+                const regRef = doc(collection(db, 'registrations'));
+                transaction.set(regRef, regData);
+
+                if (mode === 'create' && teamName) {
+                    const teamData = {
+                        eventId: event.id, teamName: teamName.trim(),
+                        leaderId: currentUser.uid, members: [currentUser.uid],
+                        isOpen: true, createdAt: new Date().toISOString(),
+                        status: isReview ? 'pending' : 'accepted',
+                        applicationData: isReview ? appData : null,
+                        category: selectedCategory || null
+                    };
+                    const teamRef = doc(collection(db, 'teams'));
+                    transaction.set(teamRef, teamData);
+                }
+
+                // Update event counts
+                transaction.update(eventRef, {
+                    categoryCounts: currentCounts,
+                    registered: (eventData.registered || 0) + 1
                 });
-            }
+            });
+
             toast.success('Registered successfully! 🎉');
             onClose();
         } catch (err) {
@@ -102,6 +146,49 @@ function RegisterModal({ event, onClose }) {
                     <p style={{ color: '#94A3B8', fontSize: 14, marginBottom: 20 }}>
                         You'll be registered solo. Visit the Teams page to join an open team.
                     </p>
+                )}
+
+                {event.registrationCategories?.length > 0 && (
+                    <div style={{ marginBottom: 24, padding: 16, background: '#0F172A', borderRadius: 12, border: '1px solid #334155' }}>
+                        <label className="label">Select Category *</label>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 10 }}>
+                            {event.registrationCategories.map(cat => {
+                                const count = event.categoryCounts?.[cat.name] || 0;
+                                const isFull = count >= cat.limit;
+                                return (
+                                    <button 
+                                        key={cat.name} 
+                                        onClick={() => !isFull && setSelectedCategory(cat.name)}
+                                        style={{
+                                            padding: '12px 16px', borderRadius: 10, border: '1px solid',
+                                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                            cursor: isFull ? 'not-allowed' : 'pointer', transition: '0.2s',
+                                            background: selectedCategory === cat.name ? 'rgba(59,130,246,0.1)' : 'rgba(255,255,255,0.02)',
+                                            borderColor: selectedCategory === cat.name ? '#3B82F6' : '#334155',
+                                            opacity: isFull ? 0.5 : 1
+                                        }}
+                                    >
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                            <div style={{ 
+                                                width: 18, height: 18, borderRadius: '50%', border: '2px solid',
+                                                borderColor: selectedCategory === cat.name ? '#3B82F6' : '#475569',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                            }}>
+                                                {selectedCategory === cat.name && <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#3B82F6' }} />}
+                                            </div>
+                                            <span style={{ fontSize: 14, fontWeight: 600, color: '#F8FAFC' }}>{cat.name}</span>
+                                        </div>
+                                        <div style={{ textAlign: 'right' }}>
+                                            <div style={{ fontSize: 12, fontWeight: 700, color: isFull ? '#EF4444' : '#10B981' }}>
+                                                {isFull ? 'Sold Out' : `${cat.limit - count} left`}
+                                            </div>
+                                            <div style={{ fontSize: 10, color: '#64748B' }}>Limit: {cat.limit}</div>
+                                        </div>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
                 )}
 
                 {event.registrationMode === 'review' && (

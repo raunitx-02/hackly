@@ -55,7 +55,7 @@ class CashfreeService {
             // 2. Load Cashfree Script for Paid Plans
             await this.loadScript();
             this.cashfree = window.Cashfree({
-                mode: "sandbox" // Change to "production" for live
+                mode: "production" // Switched to "production" for live
             });
 
             // 3. Request Order from Firebase Backend
