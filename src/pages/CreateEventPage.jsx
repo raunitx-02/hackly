@@ -90,7 +90,7 @@ function Row({ children, cols = 2 }) {
 }
 
 export default function CreateEventPage() {
-    const { currentUser, userProfile, hasFeature } = useAuth();
+    const { currentUser, userProfile, hasFeature, loading } = useAuth();
     const [step, setStep] = useState(1);
     const [problemStatements, setProblemStatements] = useState(['']);
 
@@ -130,8 +130,11 @@ export default function CreateEventPage() {
                 }
             };
             fetchEventCount();
+        } else if (!loading) {
+            setFetchingLimit(false);
+            navigate('/auth?redirect=/events/create');
         }
-    }, [currentUser]);
+    }, [currentUser, loading, navigate]);
 
     const plan = userProfile?.currentPlan || 'Free / Trial';
     const isFree = plan === 'Free / Trial';
@@ -143,7 +146,7 @@ export default function CreateEventPage() {
 
     if (loading || fetchingLimit) return null;
 
-    if ((isFree || hasReachedLimit) && userProfile?.role !== 'admin') {
+    if ((hasReachedLimit) && userProfile?.role !== 'admin') {
         const title = hasReachedLimit ? "Event Limit Reached" : "Upgrade to Launch Events";
         const message = hasReachedLimit 
             ? `Your current ${plan} plan allows up to ${limit} event${limit > 1 ? 's' : ''}. You have already created ${eventCount} event${eventCount > 1 ? 's' : ''}.`
