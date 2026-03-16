@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { doc, getDoc, collection, addDoc, runTransaction } from 'firebase/firestore';
+import { doc, getDoc, collection, addDoc, runTransaction, query, where, getDocs, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
-import { Users, User, Mail, Hash, ArrowLeft, Send } from 'lucide-react';
+import { Users, User, Mail, Hash, ArrowLeft, Send, CheckCircle } from 'lucide-react';
 import DashboardLayout from '../components/DashboardLayout';
 
 export default function EventRegistrationPage() {
@@ -13,141 +13,124 @@ export default function EventRegistrationPage() {
     const navigate = useNavigate();
     
     const [event, setEvent] = useState(null);
+    const [registration, setRegistration] = useState(null);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
-    const [selectedCategory, setSelectedCategory] = useState('');
-    const [teamName, setTeamName] = useState('');
-    const [members, setMembers] = useState([]); // [{ name, email, enrollmentId }]
+    const [activeStageIdx, setActiveStageIdx] = useState(0);
+    const [responses, setResponses] = useState({});
 
     useEffect(() => {
-        async function fetchEvent() {
+        async function fetchData() {
+            if (!currentUser) {
+                setLoading(false);
+                return;
+            }
             try {
-                const snap = await getDoc(doc(db, 'events', id));
-                if (snap.exists()) {
-                    const data = snap.id ? { id: snap.id, ...snap.data() } : snap.data();
-                    setEvent(data);
-                    
-                    // Initialize empty members array based on maxTeamSize
-                    const maxMembers = data.maxTeamSize || 1;
-                    const initialMembers = Array.from({ length: maxMembers - 1 }, () => ({
-                        name: '', email: '', enrollmentId: ''
-                    }));
-                    setMembers(initialMembers);
-                } else {
+                // 1. Fetch Event
+                const eventSnap = await getDoc(doc(db, 'events', id));
+                if (!eventSnap.exists()) {
                     toast.error("Event not found");
                     navigate('/events');
+                    return;
+                }
+                const eventData = { id: eventSnap.id, ...eventSnap.data() };
+                setEvent(eventData);
+
+                // 2. Fetch Existing Registration
+                const q = query(collection(db, 'registrations'), where('eventId', '==', id), where('userId', '==', currentUser.uid));
+                const regSnap = await getDocs(q);
+                
+                if (!regSnap.empty) {
+                    const regDoc = regSnap.docs[0];
+                    const regData = { id: regDoc.id, ...regDoc.data() };
+                    setRegistration(regData);
+
+                    // 3. Determine next stage
+                    if (eventData.customForms) {
+                        const completedStages = regData.completedStages || [];
+                        const nextIdx = eventData.customForms.findIndex((_, idx) => !completedStages.includes(idx));
+                        if (nextIdx !== -1) {
+                            setActiveStageIdx(nextIdx);
+                        } else {
+                            setActiveStageIdx(-1); // All completed
+                        }
+                    } else {
+                        setActiveStageIdx(-1); // Legacy or no custom forms
+                    }
+                } else {
+                    setActiveStageIdx(0);
                 }
             } catch (err) {
-                toast.error("Failed to load event");
+                console.error(err);
+                toast.error("Failed to load data");
             } finally {
                 setLoading(false);
             }
         }
-        fetchEvent();
-    }, [id, navigate]);
+        fetchData();
+    }, [id, currentUser, navigate]);
 
-    const handleMemberChange = (index, field, value) => {
-        const newMembers = [...members];
-        newMembers[index][field] = value;
-        setMembers(newMembers);
+    const handleResponseChange = (fieldId, value) => {
+        setResponses(prev => ({ ...prev, [fieldId]: value }));
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!currentUser) return navigate('/auth');
         
-        if (event.registrationCategories?.length > 0 && !selectedCategory) {
-            return toast.error("Please select a registration category");
-        }
-
-        if (event.maxTeamSize > 1 && !teamName.trim()) {
-            return toast.error("Team name is required for team events");
-        }
-
-        // Validate Leader Info (Assume leader is the current user + we need their enrollment/email)
-        const leaderEnrollment = e.target.leaderEnrollment.value;
-        if (!leaderEnrollment) return toast.error("Leader enrollment ID is required");
-
-        // Validate Members
-        for (let i = 0; i < members.length; i++) {
-            const m = members[i];
-            // If any field is filled, all must be filled
-            if (m.name || m.email || m.enrollmentId) {
-                if (!m.name || !m.email || !m.enrollmentId) {
-                    return toast.error(`Please complete all details for Team Member ${i + 2}`);
-                }
+        const currentForm = event.customForms?.[activeStageIdx] || { fields: [] };
+        
+        // Basic validation
+        for (const field of currentForm.fields) {
+            if (field.required && !responses[field.id]) {
+                return toast.error(`${field.label} is required`);
             }
         }
 
         setSubmitting(true);
         try {
-            await runTransaction(db, async (transaction) => {
-                const eventRef = doc(db, 'events', id);
-                const eventSnap = await transaction.get(eventRef);
-                const eventData = eventSnap.data();
+            if (!registration) {
+                // First time registration
+                await runTransaction(db, async (transaction) => {
+                    const eventRef = doc(db, 'events', id);
+                    const eventSnap = await transaction.get(eventRef);
+                    const eventData = eventSnap.data();
 
-                // Category limit check
-                const currentCounts = eventData.categoryCounts || {};
-                if (selectedCategory) {
-                    const category = eventData.registrationCategories.find(c => c.name === selectedCategory);
-                    const count = currentCounts[selectedCategory] || 0;
-                    if (category && count >= category.limit) {
-                        throw new Error(`The category "${selectedCategory}" is full.`);
-                    }
-                    currentCounts[selectedCategory] = count + 1;
-                }
-
-                // Create Registration
-                const regRef = doc(collection(db, 'registrations'));
-                const regData = {
-                    eventId: id,
-                    userId: currentUser.uid,
-                    leaderName: userProfile?.name || currentUser.displayName,
-                    leaderEmail: currentUser.email,
-                    leaderEnrollment: leaderEnrollment,
-                    teamName: teamName || 'Solo',
-                    members: members.filter(m => m.name && m.email),
-                    registeredAt: new Date().toISOString(),
-                    status: event.registrationMode === 'review' ? 'pending' : 'accepted',
-                    category: selectedCategory || null
-                };
-                transaction.set(regRef, regData);
-
-                // Create Team
-                if (event.maxTeamSize > 1) {
-                    const teamRef = doc(collection(db, 'teams'));
-                    const teamData = {
+                    const regRef = doc(collection(db, 'registrations'));
+                    const regData = {
                         eventId: id,
-                        teamName: teamName.trim(),
-                        leaderId: currentUser.uid,
+                        userId: currentUser.uid,
                         leaderName: userProfile?.name || currentUser.displayName,
-                        leaderEnrollment: leaderEnrollment,
-                        members: [
-                            { uid: currentUser.uid, name: userProfile?.name || currentUser.displayName, email: currentUser.email, enrollmentId: leaderEnrollment },
-                            ...members.filter(m => m.name && m.email)
-                        ].map(m => m.uid || m.email), // We store UIDs or emails as identifiers
-                        memberDetails: [
-                            { name: userProfile?.name || currentUser.displayName, email: currentUser.email, enrollmentId: leaderEnrollment, role: 'leader' },
-                            ...members.filter(m => m.name && m.email).map(m => ({ ...m, role: 'member' }))
-                        ],
-                        isOpen: false,
+                        leaderEmail: currentUser.email,
+                        responses: responses,
+                        completedStages: [0],
+                        registeredAt: new Date().toISOString(),
                         status: event.registrationMode === 'review' ? 'pending' : 'accepted',
-                        createdAt: new Date().toISOString()
                     };
-                    transaction.set(teamRef, teamData);
-                }
-
-                // Update Event
-                transaction.update(eventRef, {
-                    categoryCounts: currentCounts,
-                    registered: (eventData.registered || 0) + 1
+                    transaction.set(regRef, regData);
+                    
+                    transaction.update(eventRef, {
+                        registered: (eventData.registered || 0) + 1
+                    });
                 });
-            });
-
-            toast.success("Registration successful! 🚀");
-            navigate(`/events/${id}`);
+                toast.success("Initial registration successful! 🚀");
+            } else {
+                // Subsequent stage
+                const updatedResponses = { ...(registration.responses || {}), ...responses };
+                const updatedStages = [...(registration.completedStages || []), activeStageIdx];
+                
+                await updateDoc(doc(db, 'registrations', registration.id), {
+                    responses: updatedResponses,
+                    completedStages: updatedStages,
+                    updatedAt: new Date().toISOString()
+                });
+                toast.success(`${currentForm.title} submitted! ✨`);
+            }
+            
+            // Reload to find next stage
+            window.location.reload();
         } catch (err) {
-            toast.error("Registration failed: " + err.message);
+            toast.error("Submission failed: " + err.message);
         } finally {
             setSubmitting(false);
         }
@@ -159,152 +142,131 @@ export default function EventRegistrationPage() {
         </div>
     );
 
+    if (!currentUser) {
+        return (
+            <DashboardLayout>
+                <div style={{ textAlign: 'center', padding: '100px 20px' }}>
+                    <h2 style={{ color: '#F8FAFC', marginBottom: 16 }}>Please log in to register</h2>
+                    <button onClick={() => navigate('/auth')} className="btn-gradient" style={{ padding: '12px 24px' }}>Login / Signup</button>
+                </div>
+            </DashboardLayout>
+        );
+    }
+
+    if (activeStageIdx === -1) {
+        return (
+            <DashboardLayout>
+                <div style={{ maxWidth: 600, margin: '60px auto', textAlign: 'center', background: '#1E293B', padding: 40, borderRadius: 24, border: '1px solid #334155' }}>
+                    <div style={{ width: 64, height: 64, background: 'rgba(16,185,129,0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
+                        <CheckCircle size={32} color="#10B981" />
+                    </div>
+                    <h2 style={{ color: '#F8FAFC', fontSize: 24, fontWeight: 800, marginBottom: 12 }}>You're all set!</h2>
+                    <p style={{ color: '#94A3B8', lineHeight: 1.6, marginBottom: 24 }}>
+                        You have completed all registration stages for <strong>{event?.title}</strong>. 
+                        We'll notify you if any further action is needed.
+                    </p>
+                    <button onClick={() => navigate(`/events/${id}`)} className="btn-outline" style={{ width: '100%', padding: 14 }}>View Event Details</button>
+                </div>
+            </DashboardLayout>
+        );
+    }
+
+    const currentForm = event?.customForms?.[activeStageIdx] || { title: 'Registration', fields: [] };
+
     return (
         <DashboardLayout>
             <div style={{ maxWidth: 800, margin: '0 auto', padding: '40px 20px' }}>
                 <button onClick={() => navigate(-1)} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', marginBottom: 24, fontSize: 14 }}>
-                    <ArrowLeft size={16} /> Back to Event
+                    <ArrowLeft size={16} /> Back
                 </button>
 
                 <div style={{ background: '#1E293B', borderRadius: 24, border: '1px solid #334155', padding: '40px', position: 'relative', overflow: 'hidden' }}>
                     <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, background: 'linear-gradient(90deg, #3B82F6, #8B5CF6)' }} />
                     
                     <div style={{ marginBottom: 32 }}>
-                        <h1 style={{ fontSize: 28, fontWeight: 800, color: '#F8FAFC', marginBottom: 8 }}>Register for {event.title}</h1>
-                        <p style={{ color: '#94A3B8' }}>Fill in your team details to secure your spot.</p>
+                        <div style={{ color: '#3B82F6', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
+                            Stage {activeStageIdx + 1} of {event?.customForms?.length || 1}
+                        </div>
+                        <h1 style={{ fontSize: 28, fontWeight: 800, color: '#F8FAFC', marginBottom: 8 }}>{currentForm.title}</h1>
+                        <p style={{ color: '#94A3B8' }}>{registration ? "Please provide the following additional details." : `Register for ${event?.title}`}</p>
                     </div>
 
                     <form onSubmit={handleSubmit}>
-                        {/* Category Selection */}
-                        {event.registrationCategories?.length > 0 && (
-                            <div style={{ marginBottom: 32 }}>
-                                <label className="label">Registration Category *</label>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, marginTop: 12 }}>
-                                    {event.registrationCategories.map(cat => {
-                                        const count = event.categoryCounts?.[cat.name] || 0;
-                                        const isFull = count >= cat.limit;
-                                        return (
-                                            <div 
-                                                key={cat.name} 
-                                                onClick={() => !isFull && setSelectedCategory(cat.name)}
-                                                style={{
-                                                    padding: '16px', borderRadius: 12, border: '1px solid',
-                                                    cursor: isFull ? 'not-allowed' : 'pointer', transition: '0.2s',
-                                                    background: selectedCategory === cat.name ? 'rgba(59,130,246,0.1)' : '#0F172A',
-                                                    borderColor: selectedCategory === cat.name ? '#3B82F6' : '#334155',
-                                                    opacity: isFull ? 0.5 : 1
-                                                }}
-                                            >
-                                                <div style={{ fontWeight: 600, color: '#F8FAFC', fontSize: 14 }}>{cat.name}</div>
-                                                <div style={{ fontSize: 12, color: isFull ? '#EF4444' : '#10B981', marginTop: 4 }}>
-                                                    {isFull ? 'Sold Out' : `${cat.limit - count} spots left`}
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Team Section */}
-                        {event.maxTeamSize > 1 && (
-                            <div style={{ marginBottom: 32 }}>
-                                <label className="label">Team Name *</label>
-                                <div style={{ position: 'relative', marginTop: 8 }}>
-                                    <Users size={18} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#64748B' }} />
-                                    <input className="input" style={{ paddingLeft: 44 }} placeholder="Enter a creative team name" value={teamName} onChange={e => setTeamName(e.target.value)} required />
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Leader Section */}
-                        <div style={{ marginBottom: 32, padding: 24, background: 'rgba(59,130,246,0.03)', borderRadius: 16, border: '1px solid rgba(59,130,246,0.1)' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-                                <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#3B82F6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <User size={16} color="white" />
-                                </div>
-                                <h3 style={{ fontSize: 16, fontWeight: 700, color: '#F8FAFC' }}>Team Leader (You)</h3>
-                            </div>
-                            
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                                <div>
-                                    <label className="label" style={{ fontSize: 12 }}>Full Name</label>
-                                    <input className="input" style={{ background: '#0F172A', opacity: 0.7 }} value={userProfile?.name || currentUser?.displayName || ''} disabled />
-                                </div>
-                                <div>
-                                    <label className="label" style={{ fontSize: 12 }}>Email Address</label>
-                                    <input className="input" style={{ background: '#0F172A', opacity: 0.7 }} value={currentUser?.email || ''} disabled />
-                                </div>
-                                <div style={{ gridColumn: 'span 2' }}>
-                                    <label className="label" style={{ fontSize: 12 }}>Enrollment ID / College ID *</label>
-                                    <div style={{ position: 'relative', marginTop: 4 }}>
-                                        <Hash size={14} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#64748B' }} />
-                                        <input name="leaderEnrollment" className="input" style={{ paddingLeft: 40, background: '#0F172A' }} placeholder="Your unique student ID" required />
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Members Section */}
-                        {members.map((member, idx) => (
-                            <div key={idx} style={{ marginBottom: 32, padding: 24, background: 'rgba(255,255,255,0.02)', borderRadius: 16, border: '1px solid #334155' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-                                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#475569', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                        <User size={16} color="white" />
-                                    </div>
-                                    <h3 style={{ fontSize: 16, fontWeight: 700, color: '#F8FAFC' }}>Team Member {idx + 2}</h3>
-                                </div>
-
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                                    <div>
-                                        <label className="label" style={{ fontSize: 12 }}>Full Name</label>
-                                        <input 
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+                            {currentForm.fields.map(field => (
+                                <div key={field.id}>
+                                    <label className="label">
+                                        {field.label} {field.required && <span style={{ color: '#EF4444' }}>*</span>}
+                                    </label>
+                                    
+                                    {field.type === 'textarea' ? (
+                                        <textarea 
                                             className="input" 
-                                            style={{ background: '#0F172A' }} 
-                                            placeholder="Enter name"
-                                            value={member.name}
-                                            onChange={e => handleMemberChange(idx, 'name', e.target.value)}
+                                            style={{ minHeight: 100, resize: 'vertical' }}
+                                            placeholder={`Enter ${field.label.toLowerCase()}...`}
+                                            required={field.required}
+                                            value={responses[field.id] || ''}
+                                            onChange={e => handleResponseChange(field.id, e.target.value)}
                                         />
-                                    </div>
-                                    <div>
-                                        <label className="label" style={{ fontSize: 12 }}>Email Address</label>
-                                        <div style={{ position: 'relative' }}>
-                                            <Mail size={14} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#64748B' }} />
-                                            <input 
-                                                className="input" 
-                                                style={{ paddingLeft: 40, background: '#0F172A' }} 
-                                                placeholder="email@college.edu"
-                                                value={member.email}
-                                                onChange={e => handleMemberChange(idx, 'email', e.target.value)}
-                                            />
+                                    ) : field.type === 'select' ? (
+                                        <select 
+                                            className="input"
+                                            required={field.required}
+                                            value={responses[field.id] || ''}
+                                            onChange={e => handleResponseChange(field.id, e.target.value)}
+                                        >
+                                            <option value="">Select an option</option>
+                                            {field.options?.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                                        </select>
+                                    ) : field.type === 'radio' ? (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 8 }}>
+                                            {field.options?.map(opt => (
+                                                <label key={opt} style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#CBD5E1', fontSize: 14, cursor: 'pointer' }}>
+                                                    <input 
+                                                        type="radio" 
+                                                        name={field.id}
+                                                        value={opt}
+                                                        checked={responses[field.id] === opt}
+                                                        onChange={e => handleResponseChange(field.id, e.target.value)}
+                                                        style={{ accentColor: '#3B82F6', width: 18, height: 18 }} 
+                                                    />
+                                                    {opt}
+                                                </label>
+                                            ))}
                                         </div>
-                                    </div>
-                                    <div style={{ gridColumn: 'span 2' }}>
-                                        <label className="label" style={{ fontSize: 12 }}>Enrollment ID / College ID</label>
-                                        <div style={{ position: 'relative' }}>
-                                            <Hash size={14} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#64748B' }} />
+                                    ) : field.type === 'checkbox' ? (
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#CBD5E1', fontSize: 14, cursor: 'pointer', marginTop: 8 }}>
                                             <input 
-                                                className="input" 
-                                                style={{ paddingLeft: 40, background: '#0F172A' }} 
-                                                placeholder="Unique student ID"
-                                                value={member.enrollmentId}
-                                                onChange={e => handleMemberChange(idx, 'enrollmentId', e.target.value)}
+                                                type="checkbox" 
+                                                checked={!!responses[field.id]}
+                                                onChange={e => handleResponseChange(field.id, e.target.checked)}
+                                                style={{ accentColor: '#3B82F6', width: 18, height: 18 }} 
                                             />
-                                        </div>
-                                    </div>
+                                            {field.label}
+                                        </label>
+                                    ) : (
+                                        <input 
+                                            type={field.type}
+                                            className="input"
+                                            placeholder={`Enter ${field.label.toLowerCase()}...`}
+                                            required={field.required}
+                                            value={responses[field.id] || ''}
+                                            onChange={e => handleResponseChange(field.id, e.target.value)}
+                                        />
+                                    )}
                                 </div>
-                            </div>
-                        ))}
+                            ))}
+                        </div>
 
                         <button 
                             type="submit" 
                             disabled={submitting} 
                             className="btn-gradient" 
-                            style={{ width: '100%', padding: '16px', fontSize: 16, justifyContent: 'center', gap: 10, marginTop: 16 }}
+                            style={{ width: '100%', padding: '16px', fontSize: 16, justifyContent: 'center', gap: 10, marginTop: 40 }}
                         >
-                            {submitting ? 'Processing Registration...' : (
+                            {submitting ? 'Submitting Responses...' : (
                                 <>
-                                    Complete Registration <Send size={18} />
+                                    {activeStageIdx === (event?.customForms?.length || 1) - 1 ? 'Complete Registration' : 'Continue to Next Stage'} <Send size={18} />
                                 </>
                             )}
                         </button>
@@ -314,7 +276,7 @@ export default function EventRegistrationPage() {
             <style>{`
                 @keyframes spin { to { transform: rotate(360deg); } }
                 .label { color: #94A3B8; font-weight: 600; font-size: 14px; margin-bottom: 8px; display: block; }
-                .input { width: 100%; background: #1E293B; border: 1px solid #334155; border-radius: 12px; padding: 12px 16px; color: #F8FAFC; font-size: 14px; transition: all 0.2s; }
+                .input { width: 100%; background: #0F172A; border: 1px solid #334155; border-radius: 12px; padding: 12px 16px; color: #F8FAFC; font-size: 14px; transition: all 0.2s; }
                 .input:focus { border-color: #3B82F6; outline: none; box-shadow: 0 0 0 4px rgba(59,130,246,0.1); }
                 .btn-gradient { background: linear-gradient(135deg, #3B82F6, #8B5CF6); color: white; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; display: flex; alignItems: center; transition: all 0.2s; }
                 .btn-gradient:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(59,130,246,0.25); }

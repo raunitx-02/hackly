@@ -8,7 +8,7 @@ import DashboardLayout from '../components/DashboardLayout';
 import toast from 'react-hot-toast';
 import {
     CheckCircle, ChevronRight, ChevronLeft, Plus, Trash2,
-    CalendarDays, MapPin, Users, Trophy, Star, Eye, Settings, Sparkles, X, Activity, Tag
+    CalendarDays, MapPin, Users, Trophy, Star, Eye, Settings, Sparkles, X, Activity, Tag, FileText
 } from 'lucide-react';
 import { ORGANIZER_CONFIG } from '../data/advancedOrganizerConfig';
 import { AI_GENERATOR_CONFIG } from '../data/aiGeneratorConfig';
@@ -97,7 +97,18 @@ export default function CreateEventPage() {
 
     const canUseAI = hasFeature('ai_generator');
 
-    // AI Generator State
+    // Multi-Stage Custom Forms
+    const [customForms, setCustomForms] = useState([
+        {
+            id: 'reg_primary',
+            title: 'Initial Registration',
+            fields: [
+                { id: 'f_name', label: 'Full Name', type: 'text', required: true },
+                { id: 'f_email', label: 'Email Address', type: 'email', required: true },
+                { id: 'f_enrollment', label: 'Enrollment / College ID', type: 'text', required: true },
+            ]
+        }
+    ]);
     const [isAIPanelOpen, setIsAIPanelOpen] = useState(false);
     const [aiLoading, setAiLoading] = useState(false);
     const [aiForm, setAiForm] = useState({ board: 'cbse', class: 'ug_1', theme: '', difficulty: 'intermediate' });
@@ -165,6 +176,9 @@ export default function CreateEventPage() {
                             setJudges(data.judges || ['']);
                             setCriteria(data.judgingCriteria || []);
                             setRegistrationCategories(data.registrationCategories || []);
+                            if (data.customForms) {
+                                setCustomForms(data.customForms);
+                            }
                         }
                     }
                 } catch (e) {
@@ -217,6 +231,32 @@ export default function CreateEventPage() {
         );
     }
 
+    const addForm = () => {
+        setCustomForms([...customForms, {
+            id: 'form_' + Date.now(),
+            title: 'New Form (e.g. RSVP)',
+            fields: [{ id: 'f_' + Date.now(), label: 'New Field', type: 'text', required: true }]
+        }]);
+    };
+
+    const addField = (formIdx) => {
+        const newForms = [...customForms];
+        newForms[formIdx].fields.push({ id: 'f_' + Date.now(), label: '', type: 'text', required: true });
+        setCustomForms(newForms);
+    };
+
+    const updateField = (formIdx, fieldIdx, updates) => {
+        const newForms = [...customForms];
+        newForms[formIdx].fields[fieldIdx] = { ...newForms[formIdx].fields[fieldIdx], ...updates };
+        setCustomForms(newForms);
+    };
+
+    const removeField = (formIdx, fieldIdx) => {
+        const newForms = [...customForms];
+        newForms[formIdx].fields = newForms[formIdx].fields.filter((_, i) => i !== fieldIdx);
+        setCustomForms(newForms);
+    };
+
     const formData = watch();
 
     const next = async () => {
@@ -263,6 +303,7 @@ export default function CreateEventPage() {
                 prizes: { first: data.prize1 || '', second: data.prize2 || '', third: data.prize3 || '', total: data.prizeTotal || '' },
                 judges: judges.filter(Boolean),
                 judgingCriteria: criteria,
+                customForms: customForms,
                 status: status === 'published' ? 'published' : 'draft',
                 registrationCategories: registrationCategories.filter(c => c.name.trim()),
                 updatedAt: new Date().toISOString(),
@@ -686,6 +727,91 @@ export default function CreateEventPage() {
                                         <Plus size={15} /> Add Criterion
                                     </button>
                                 </div>
+                            </SectionCard>
+
+                            <SectionCard title="Custom Forms & Stages" icon={FileText}>
+                                <p style={{ color: '#94A3B8', fontSize: 13, marginBottom: 20 }}>
+                                    Add multiple form stages like RSVP, Phase 2, or Feedback.
+                                </p>
+                                {customForms.map((form, fIdx) => (
+                                    <div key={form.id} style={{ border: '1px solid #334155', borderRadius: 12, padding: 20, marginBottom: 24, background: 'rgba(255,255,255,0.02)' }}>
+                                        <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
+                                            <input 
+                                                className="input" 
+                                                style={{ fontSize: 16, fontWeight: 700, background: 'transparent', border: 'none', padding: 0 }} 
+                                                value={form.title} 
+                                                onChange={e => {
+                                                    const nf = [...customForms];
+                                                    nf[fIdx].title = e.target.value;
+                                                    setCustomForms(nf);
+                                                }}
+                                            />
+                                            {fIdx > 0 && (
+                                                <button type="button" onClick={() => setCustomForms(customForms.filter((_, k) => k !== fIdx))} style={{ color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer' }}>
+                                                    <Trash2 size={18} />
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                            {form.fields.map((field, fiIdx) => (
+                                                <div key={fiIdx} style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr auto auto', gap: 12, alignItems: 'center', padding: 12, background: '#0F172A', borderRadius: 10 }}>
+                                                    <input 
+                                                        className="input" 
+                                                        placeholder="Field Label (e.g. GitHub Link)" 
+                                                        value={field.label}
+                                                        onChange={e => updateField(fIdx, fiIdx, { label: e.target.value })}
+                                                    />
+                                                    <select 
+                                                        className="input" 
+                                                        value={field.type}
+                                                        onChange={e => updateField(fIdx, fiIdx, { type: e.target.value })}
+                                                    >
+                                                        <option value="text">Text Box</option>
+                                                        <option value="textarea">Large Text</option>
+                                                        <option value="number">Number</option>
+                                                        <option value="email">Email</option>
+                                                        <option value="select">Dropdown</option>
+                                                        <option value="checkbox">Checkbox</option>
+                                                        <option value="radio">Radio Buttons</option>
+                                                        <option value="url">URL</option>
+                                                    </select>
+                                                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', color: '#94A3B8', fontSize: 12 }}>
+                                                        <input 
+                                                            type="checkbox" 
+                                                            checked={field.required}
+                                                            onChange={e => updateField(fIdx, fiIdx, { required: e.target.checked })}
+                                                        />
+                                                        Req?
+                                                    </label>
+                                                    {form.fields.length > 1 && (
+                                                        <button type="button" onClick={() => removeField(fIdx, fiIdx)} style={{ color: '#64748B', background: 'none', border: 'none', cursor: 'pointer' }}>
+                                                            <Trash2 size={16} />
+                                                        </button>
+                                                    )}
+
+                                                    {(field.type === 'select' || field.type === 'radio') && (
+                                                        <div style={{ gridColumn: 'span 4', marginTop: 8 }}>
+                                                            <input 
+                                                                className="input" 
+                                                                style={{ fontSize: 12, padding: '8px 12px' }} 
+                                                                placeholder="Options (comma separated: Option 1, Option 2...)" 
+                                                                value={field.options?.join(', ') || ''}
+                                                                onChange={e => updateField(fIdx, fiIdx, { options: e.target.value.split(',').map(o => o.trim()) })}
+                                                            />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                            <button type="button" onClick={() => addField(fIdx)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: 'rgba(59,130,246,0.1)', border: '1px dashed rgba(59,130,246,0.4)', borderRadius: 8, color: '#3B82F6', cursor: 'pointer', fontSize: 12, fontWeight: 600, alignSelf: 'flex-start' }}>
+                                                <Plus size={14} /> Add Field
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                                <button type="button" onClick={addForm} className="btn-outline" style={{ width: '100%', justifyContent: 'center', borderStyle: 'dashed' }}>
+                                    <Plus size={18} /> Add New Form Stage (e.g. RSVP)
+                                </button>
                             </SectionCard>
 
                             <SectionCard title="Advanced Settings" icon={Settings}>

@@ -117,8 +117,19 @@ function ApplicationsTab({ event, hasFeature }) {
                                         </div>
                                     )}
                                 </td>
-                                <td style={{ padding: '16px 24px', color: '#94A3B8', fontSize: 13, maxWidth: 200, WebkitLineClamp: 2, display: '-webkit-box', WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{reg.applicationData?.motivation || '—'}</td>
-                                <td style={{ padding: '16px 24px', color: '#94A3B8', fontSize: 13 }}>{reg.applicationData?.skills || '—'}</td>
+                                 <td style={{ padding: '16px 24px', color: '#94A3B8', fontSize: 13, maxWidth: 300 }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                        {Object.entries(reg.responses || {}).map(([key, val]) => {
+                                            const field = (event.customForms || []).flatMap(f => f.fields).find(f => f.id === key);
+                                            return (
+                                                <div key={key} style={{ fontSize: 11, background: '#0F172A', padding: '4px 8px', borderRadius: 4, border: '1px solid #334155' }}>
+                                                    <span style={{ color: '#3B82F6', fontWeight: 600 }}>{field?.label || key}:</span> {typeof val === 'boolean' ? (val ? 'Yes' : 'No') : val}
+                                                </div>
+                                            );
+                                        })}
+                                        {!reg.responses && <span style={{ color: '#475569' }}>— No responses —</span>}
+                                    </div>
+                                </td>
                                 <td style={{ padding: '16px 24px' }}>
                                     <span style={{
                                         padding: '4px 10px', borderRadius: 99, fontSize: 11, fontWeight: 600, textTransform: 'uppercase',
@@ -165,7 +176,25 @@ function ReportsTab({ event }) {
     const downloadExcel = async () => {
         try {
             const snap = await getDocs(query(collection(db, 'registrations'), where('eventId', '==', event.id)));
-            const data = snap.docs.map(d => ({ ID: d.id, Status: d.data().status, Registered: d.data().registeredAt }));
+            const data = snap.docs.map(d => {
+                const reg = d.data();
+                const base = { 
+                    ID: d.id, 
+                    Name: reg.leaderName, 
+                    Email: reg.leaderEmail, 
+                    Status: reg.status, 
+                    RegisteredAt: reg.registeredAt 
+                };
+                
+                // Flatten responses into columns
+                if (reg.responses) {
+                    Object.entries(reg.responses).forEach(([key, val]) => {
+                        const field = (event.customForms || []).flatMap(f => f.fields).find(f => f.id === key);
+                        base[field?.label || key] = typeof val === 'boolean' ? (val ? 'Yes' : 'No') : val;
+                    });
+                }
+                return base;
+            });
             const ws = XLSX.utils.json_to_sheet(data);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Participants");
