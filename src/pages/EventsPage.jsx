@@ -110,7 +110,7 @@ export default function EventsPage() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const q = query(collection(db, 'events'), where('status', 'in', ['published', 'active']));
+        const q = query(collection(db, 'events'), where('status', 'in', ['published', 'active', 'approved']));
         const unsub = onSnapshot(q, (snap) => {
             setEvents(snap.docs.map(d => ({ id: d.id, ...d.data() })));
             setLoading(false);

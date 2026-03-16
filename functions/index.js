@@ -128,14 +128,6 @@ exports.moderateEventContent = functions.firestore
                         });
                     }
                 }
-            } else {
-                // If it passes check and was newly created, set state to pending_review
-                // Admin has to approve it before it goes live.
-                if (!change.before.exists && eventData.status !== 'pending_review' && eventData.status !== 'draft') {
-                    await change.after.ref.update({
-                        status: 'pending_review'
-                    });
-                }
             }
 
         } catch (error) {

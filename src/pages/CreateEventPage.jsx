@@ -219,7 +219,7 @@ export default function CreateEventPage() {
                 prizes: { first: data.prize1 || '', second: data.prize2 || '', third: data.prize3 || '', total: data.prizeTotal || '' },
                 judges: judges.filter(Boolean),
                 judgingCriteria: criteria,
-                status: status === 'published' ? 'pending_review' : 'draft',
+                status: status === 'published' ? 'published' : 'draft',
                 registered: 0,
                 registrationCategories: registrationCategories.filter(c => c.name.trim()),
                 categoryCounts: {},
