@@ -9,10 +9,8 @@ import {
     deleteUser, 
     EmailAuthProvider, 
     reauthenticateWithCredential,
-    signInWithPhoneNumber,
-    RecaptchaVerifier
 } from 'firebase/auth';
-import { doc, getDoc, setDoc, updateDoc, deleteDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, deleteDoc, collection } from 'firebase/firestore';
 import { auth, db, googleProvider } from '../lib/firebase';
 
 const AuthContext = createContext(null);
@@ -73,6 +71,7 @@ export function AuthProvider({ children }) {
             const result = await validatePhone({ phone });
             return result.data.isUnique;
         } catch (err) {
+            console.error(err);
             console.error('Phone uniqueness check failed:', err);
             // Fallback to true if function fails to avoid blocking user, 
             // but log it. In a real app, you might want to block.
@@ -80,17 +79,6 @@ export function AuthProvider({ children }) {
         }
     }
 
-    async function sendOtp(phone, verifier) {
-        const isUnique = await checkPhoneUniqueness(phone);
-        if (!isUnique) {
-            throw new Error('This phone number is already registered with another account.');
-        }
-        return signInWithPhoneNumber(auth, phone, verifier);
-    }
-
-    async function verifyOtp(confirmationResult, code) {
-        return confirmationResult.confirm(code);
-    }
 
     // LOGIN with Google — fails if no Firestore profile exists yet
     async function loginWithGoogle() {
@@ -199,8 +187,6 @@ export function AuthProvider({ children }) {
         changePassword,
         deleteAccount,
         checkPhoneUniqueness,
-        sendOtp,
-        verifyOtp
     };
 
     return (

@@ -2,8 +2,6 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../contexts/AuthContext';
-import { auth } from '../lib/firebase';
-import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
 import toast from 'react-hot-toast';
 import InstitutionAutocomplete from '../components/InstitutionAutocomplete';
 import {
@@ -65,22 +63,6 @@ const SelectField = ({ label, name, options, register, validation = {}, errors }
     </div>
 );
 
-const OtpInput = ({ register }) => (
-    <div style={{ animation: 'fadeIn 0.4s ease' }}>
-        <label className="label">Verification Code *</label>
-        <div style={{ display: 'flex', gap: 10 }}>
-            <input
-                type="text"
-                placeholder="6-digit OTP"
-                className="input"
-                {...register('otp', { required: 'Code is required', minLength: 6, maxLength: 6 })}
-            />
-        </div>
-        <p style={{ color: '#64748B', fontSize: 13, marginTop: 12 }}>
-            Enter the code sent to your mobile number.
-        </p>
-    </div>
-);
 
 const SectionLabel = ({ text }) => (
     <div style={{ borderBottom: '1px solid #334155', paddingBottom: 8, marginBottom: 4 }}>
@@ -97,16 +79,12 @@ export default function AuthPage() {
     const [loading, setLoading] = useState(false);
     const [collegeValue, setCollegeValue] = useState('');
     const [passwordStrength, setPasswordStrength] = useState(0);
-    const [otpStep, setOtpStep] = useState(false); // false -> form, true -> otp entry
-    const [loginMethod, setLoginMethod] = useState('password'); // 'password' or 'otp'
-    const [confirmationResult, setConfirmationResult] = useState(null);
-    const { signup, login, loginWithGoogle, signupWithGoogle, currentUser, userProfile, sendOtp, verifyOtp, checkPhoneUniqueness } = useAuth();
+    const { signup, login, loginWithGoogle, signupWithGoogle, currentUser, userProfile, checkPhoneUniqueness } = useAuth();
     const navigate = useNavigate();
 
-    const { register, handleSubmit, watch, reset, setValue, formState: { errors } } = useForm();
+    const { register, handleSubmit, watch, reset, formState: { errors } } = useForm();
     const role = watch('role');
     const password = watch('password');
-    const confirmPassword = watch('confirmPassword');
 
     useEffect(() => {
         if (password) {
@@ -138,69 +116,32 @@ export default function AuthPage() {
                     return;
                 }
 
-                if (!otpStep) {
-                    // Step 1: Unique Phone Check & OTP Sending
-                    if (!data.phone) {
-                        toast.error('Phone number is required');
-                        setLoading(false);
-                        return;
-                    }
+                if (data.phone) {
                     const isUnique = await checkPhoneUniqueness(data.phone);
                     if (!isUnique) {
                         toast.error('This phone number is already registered.');
                         setLoading(false);
                         return;
                     }
+                }
 
-                    const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', { size: 'invisible' });
-                    const result = await sendOtp(data.phone, verifier);
-                    setConfirmationResult(result);
-                    setOtpStep(true);
-                    toast.success('Check your phone for OTP!');
-                    setLoading(false);
-                    return;
-                } else {
-                    // Step 2: Verify OTP and Create Account
-                    await verifyOtp(confirmationResult, data.otp);
-                    await signup({
-                        email: data.email,
-                        password: data.password,
-                        name: data.name,
-                        role: data.role,
-                        college: collegeValue,
-                        phone: data.phone || '',
-                        gender: data.gender || '',
-                        age: data.age || '',
-                        yearOfStudy: data.yearOfStudy || '',
-                        branch: data.branch || '',
-                        state: data.state || '',
-                    });
-                    toast.success('Account verified and created! 🎉');
-                }
+                await signup({
+                    email: data.email,
+                    password: data.password,
+                    name: data.name,
+                    role: data.role,
+                    college: collegeValue,
+                    phone: data.phone || '',
+                    gender: data.gender || '',
+                    age: data.age || '',
+                    yearOfStudy: data.yearOfStudy || '',
+                    branch: data.branch || '',
+                    state: data.state || '',
+                });
+                toast.success('Account created successfully! 🎉');
             } else {
-                // LOGIN FLOW
-                if (loginMethod === 'otp') {
-                    if (!otpStep) {
-                        if (!data.phone) {
-                            toast.error('Enter mobile number registered with your account');
-                            setLoading(false);
-                            return;
-                        }
-                        const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', { size: 'invisible' });
-                        const result = await signInWithPhoneNumber(auth, data.phone, verifier);
-                        setConfirmationResult(result);
-                        setOtpStep(true);
-                        toast.success('OTP sent!');
-                        setLoading(false);
-                        return;
-                    } else {
-                        await verifyOtp(confirmationResult, data.otp);
-                        toast.success('Welcome back!');
-                    }
-                } else {
-                    await login(data.email, data.password);
-                    toast.success('Welcome back!');
-                }
+                await login(data.email, data.password);
+                toast.success('Welcome back!');
             }
             const redirectUrl = searchParams.get('redirect') || '/dashboard';
             navigate(redirectUrl);
@@ -360,168 +301,127 @@ export default function AuthPage() {
                         <div style={{ flex: 1, height: 1, background: '#334155' }} />
                     </div>
 
-                    {!isSignup && (
-                        <div style={{ display: 'flex', background: '#1E293B', borderRadius: 8, padding: 4, marginBottom: 24, border: '1px solid #334155' }}>
-                            <button 
-                                onClick={() => setLoginMethod('password')} 
-                                style={{ 
-                                    flex: 1, padding: '8px', border: 'none', borderRadius: 6, cursor: 'pointer',
-                                    background: loginMethod === 'password' ? '#3B82F6' : 'transparent',
-                                    color: loginMethod === 'password' ? '#fff' : '#94A3B8',
-                                    fontSize: 13, fontWeight: 600, transition: 'all 0.2s'
-                                }}
-                            >
-                                Password
-                            </button>
-                            <button 
-                                onClick={() => setLoginMethod('otp')} 
-                                style={{ 
-                                    flex: 1, padding: '8px', border: 'none', borderRadius: 6, cursor: 'pointer',
-                                    background: loginMethod === 'otp' ? '#3B82F6' : 'transparent',
-                                    color: loginMethod === 'otp' ? '#fff' : '#94A3B8',
-                                    fontSize: 13, fontWeight: 600, transition: 'all 0.2s'
-                                }}
-                            >
-                                OTP Login
-                            </button>
-                        </div>
-                    )}
-
-                    <div id="recaptcha-container"></div>
 
                     <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                        {otpStep ? (
-                            <OtpInput register={register} />
-                        ) : (
-                            <>
-                                {/* ── BASIC INFO ── */}
-                                {isSignup && <SectionLabel text="Basic Information" />}
+                        {isSignup && <SectionLabel text="Basic Information" />}
 
-                                {isSignup && (
-                                    <InputField 
-                                        label="Full Name *" name="name" icon={User} placeholder="Arjun Sharma"
-                                        register={register} errors={errors} validation={{ required: 'Name is required' }} 
-                                    />
+                        {isSignup && (
+                            <InputField 
+                                label="Full Name *" name="name" icon={User} placeholder="Arjun Sharma"
+                                register={register} errors={errors} validation={{ required: 'Name is required' }} 
+                            />
+                        )}
+
+                        <InputField 
+                            label="Email Address *" name="email" type="email" icon={Mail} placeholder="you@college.edu"
+                            register={register} errors={errors}
+                            validation={{ required: 'Email is required', pattern: { value: /\S+@\S+\.\S+/, message: 'Invalid email' } }} 
+                        />
+
+                        <InputField 
+                            label="Phone Number (Optional)" name="phone" type="tel" icon={Phone} placeholder="+91 98765 43210" 
+                            register={register} errors={errors} 
+                        />
+
+                        <InputField 
+                            label="Password *" name="password" icon={Lock} placeholder={isSignup ? 'Min 6 characters' : 'Enter password'}
+                            register={register} errors={errors} showPw={showPw} setShowPw={setShowPw} isSignup={isSignup} password={password} passwordStrength={passwordStrength}
+                            validation={{ required: 'Password is required', minLength: isSignup ? { value: 6, message: 'Min 6 characters' } : undefined }} 
+                        />
+
+                        {isSignup && (
+                            <>
+                                <InputField 
+                                    label="Confirm Password *" name="confirmPassword" icon={Lock} placeholder="Repeat password"
+                                    register={register} errors={errors} showPw={showPw} setShowPw={setShowPw}
+                                    validation={{ required: 'Please confirm password', validate: val => val === password || 'Passwords do not match' }} 
+                                />
+
+                                {/* Gender row */}
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
+                                    <SelectField label="Gender" name="gender" register={register} errors={errors} options={[
+                                        { v: '', l: 'Select gender' },
+                                        { v: 'male', l: '♂ Male' },
+                                        { v: 'female', l: '♀ Female' },
+                                        { v: 'non-binary', l: '⚧ Non-binary' },
+                                        { v: 'prefer-not', l: 'Prefer not to say' },
+                                    ]} />
+                                    <InputField label="Age" name="age" type="number" icon={Calendar} placeholder="20" register={register} errors={errors} />
+                                </div>
+
+                                <SelectField label="State" name="state" register={register} errors={errors} options={[{ v: '', l: 'Select state' }, ...STATES.map(s => ({ v: s, l: s }))]} />
+
+                                {/* ── ROLE ── */}
+                                <SectionLabel text="Choose Your Role" />
+                                <div>
+                                    <label className="label">Your Role *</label>
+                                    <select className="input" {...register('role', { required: 'Role is required' })}>
+                                        <option value="">Select your role</option>
+                                        <option value="organizer">🎯 Organizer (Create events)</option>
+                                        <option value="participant">👨‍💻 Participant (Join events)</option>
+                                        <option value="judge">⭐ Judge (Score projects)</option>
+                                        <option value="sponsor">🤝 Sponsor (Fund & Support)</option>
+                                    </select>
+                                    {errors.role && <p style={{ color: '#EF4444', fontSize: 12, marginTop: 4 }}>{errors.role.message}</p>}
+                                </div>
+
+                                {/* ── PARTICIPANT-SPECIFIC FIELDS ── */}
+                                {role === 'participant' && (
+                                    <>
+                                        <SectionLabel text="Academic Details" />
+                                        <InstitutionAutocomplete
+                                            label="College / School / Institute"
+                                            value={collegeValue}
+                                            onChange={setCollegeValue}
+                                            placeholder="Type your college or school name..."
+                                        />
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
+                                            <SelectField label="Year of Study" name="yearOfStudy" register={register} errors={errors} options={[
+                                                { v: '', l: 'Select year' },
+                                                { v: '1', l: '1st Year' },
+                                                { v: '2', l: '2nd Year' },
+                                                { v: '3', l: '3rd Year' },
+                                                { v: '4', l: '4th Year' },
+                                                { v: '5', l: '5th Year' },
+                                                { v: 'pg', l: 'Post Graduate' },
+                                                { v: 'phd', l: 'PhD' },
+                                                { v: 'school', l: 'School Student' },
+                                                { v: 'other', l: 'Other' },
+                                            ]} />
+                                            <InputField label="Branch / Stream" name="branch" placeholder="CS, ECE, MBA..." register={register} errors={errors} />
+                                        </div>
+                                    </>
                                 )}
 
-                                {(!isSignup && loginMethod === 'password') || isSignup ? (
-                                    <InputField 
-                                        label="Email Address *" name="email" type="email" icon={Mail} placeholder="you@college.edu"
-                                        register={register} errors={errors}
-                                        validation={{ required: 'Email is required', pattern: { value: /\S+@\S+\.\S+/, message: 'Invalid email' } }} 
-                                    />
-                                ) : null}
-
-                                {(!isSignup && loginMethod === 'otp') || isSignup ? (
-                                    <InputField 
-                                        label="Phone Number *" name="phone" type="tel" icon={Phone} placeholder="+91 98765 43210" 
-                                        register={register} errors={errors} validation={{ required: 'Phone number is required' }} 
-                                    />
-                                ) : null}
-
-                                {(!isSignup && loginMethod === 'password') || isSignup ? (
-                                    <InputField 
-                                        label="Password *" name="password" icon={Lock} placeholder={isSignup ? 'Min 6 characters' : 'Enter password'}
-                                        register={register} errors={errors} showPw={showPw} setShowPw={setShowPw} isSignup={isSignup} password={password} passwordStrength={passwordStrength}
-                                        validation={{ required: 'Password is required', minLength: isSignup ? { value: 6, message: 'Min 6 characters' } : undefined }} 
-                                    />
-                                ) : null}
-
-                                {isSignup && (
+                                {/* ── ORGANIZER-SPECIFIC FIELDS ── */}
+                                {role === 'organizer' && (
                                     <>
-                                        <InputField 
-                                            label="Confirm Password *" name="confirmPassword" icon={Lock} placeholder="Repeat password"
-                                            register={register} errors={errors} showPw={showPw} setShowPw={setShowPw}
-                                            validation={{ required: 'Please confirm password', validate: val => val === password || 'Passwords do not match' }} 
+                                        <SectionLabel text="Institution Details" />
+                                        <InstitutionAutocomplete
+                                            label="College / School Name *"
+                                            value={collegeValue}
+                                            onChange={setCollegeValue}
+                                            placeholder="Type your institution name..."
                                         />
+                                    </>
+                                )}
 
-                                        {/* Gender row */}
-                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
-                                            <SelectField label="Gender" name="gender" register={register} errors={errors} options={[
-                                                { v: '', l: 'Select gender' },
-                                                { v: 'male', l: '♂ Male' },
-                                                { v: 'female', l: '♀ Female' },
-                                                { v: 'non-binary', l: '⚧ Non-binary' },
-                                                { v: 'prefer-not', l: 'Prefer not to say' },
-                                            ]} />
-                                            <InputField label="Age" name="age" type="number" icon={Calendar} placeholder="20" register={register} errors={errors} />
-                                        </div>
-
-                                        <SelectField label="State" name="state" register={register} errors={errors} options={[{ v: '', l: 'Select state' }, ...STATES.map(s => ({ v: s, l: s }))]} />
-
-                                        {/* ── ROLE ── */}
-                                        <SectionLabel text="Choose Your Role" />
-                                        <div>
-                                            <label className="label">Your Role *</label>
-                                            <select className="input" {...register('role', { required: 'Role is required' })}>
-                                                <option value="">Select your role</option>
-                                                <option value="organizer">🎯 Organizer (Create events)</option>
-                                                <option value="participant">👨‍💻 Participant (Join events)</option>
-                                                <option value="judge">⭐ Judge (Score projects)</option>
-                                                <option value="sponsor">🤝 Sponsor (Fund & Support)</option>
-                                            </select>
-                                            {errors.role && <p style={{ color: '#EF4444', fontSize: 12, marginTop: 4 }}>{errors.role.message}</p>}
-                                        </div>
-
-                                        {/* ── PARTICIPANT-SPECIFIC FIELDS ── */}
-                                        {role === 'participant' && (
-                                            <>
-                                                <SectionLabel text="Academic Details" />
-                                                <InstitutionAutocomplete
-                                                    label="College / School / Institute"
-                                                    value={collegeValue}
-                                                    onChange={setCollegeValue}
-                                                    placeholder="Type your college or school name..."
-                                                />
-                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
-                                                    <SelectField label="Year of Study" name="yearOfStudy" register={register} errors={errors} options={[
-                                                        { v: '', l: 'Select year' },
-                                                        { v: '1', l: '1st Year' },
-                                                        { v: '2', l: '2nd Year' },
-                                                        { v: '3', l: '3rd Year' },
-                                                        { v: '4', l: '4th Year' },
-                                                        { v: '5', l: '5th Year' },
-                                                        { v: 'pg', l: 'Post Graduate' },
-                                                        { v: 'phd', l: 'PhD' },
-                                                        { v: 'school', l: 'School Student' },
-                                                        { v: 'other', l: 'Other' },
-                                                    ]} />
-                                                    <InputField label="Branch / Stream" name="branch" placeholder="CS, ECE, MBA..." register={register} errors={errors} />
-                                                </div>
-                                            </>
-                                        )}
-
-                                        {/* ── ORGANIZER-SPECIFIC FIELDS ── */}
-                                        {role === 'organizer' && (
-                                            <>
-                                                <SectionLabel text="Institution Details" />
-                                                <InstitutionAutocomplete
-                                                    label="College / School Name *"
-                                                    value={collegeValue}
-                                                    onChange={setCollegeValue}
-                                                    placeholder="Type your institution name..."
-                                                />
-                                            </>
-                                        )}
-
-                                        {/* ── JUDGE OR SPONSOR-SPECIFIC FIELDS ── */}
-                                        {(role === 'judge' || role === 'sponsor') && (
-                                            <>
-                                                <SectionLabel text="Professional Details" />
-                                                <InstitutionAutocomplete
-                                                    label="Institution / Company"
-                                                    value={collegeValue}
-                                                    onChange={setCollegeValue}
-                                                    placeholder="Your college or company..."
-                                                />
-                                            </>
-                                        )}
+                                {/* ── JUDGE OR SPONSOR-SPECIFIC FIELDS ── */}
+                                {(role === 'judge' || role === 'sponsor') && (
+                                    <>
+                                        <SectionLabel text="Professional Details" />
+                                        <InstitutionAutocomplete
+                                            label="Institution / Company"
+                                            value={collegeValue}
+                                            onChange={setCollegeValue}
+                                            placeholder="Your college or company..."
+                                        />
                                     </>
                                 )}
                             </>
                         )}
 
-                        {!isSignup && loginMethod === 'password' && !otpStep && (
+                        {!isSignup && (
                             <div style={{ textAlign: 'right', marginTop: -8 }}>
                                 <a href="#" style={{ color: '#3B82F6', fontSize: 13, textDecoration: 'none' }}>
                                     Forgot password?
@@ -538,19 +438,10 @@ export default function AuthPage() {
                             {loading ? (
                                 <div style={{ width: 20, height: 20, border: '2px solid white', borderTop: '2px solid transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
                             ) : (
-                                <>{isSignup ? (otpStep ? 'Verify & Create' : 'Send Verification OTP') : (otpStep ? 'Verify & Login' : (loginMethod === 'otp' ? 'Send OTP' : 'Sign In'))} <ArrowRight size={18} /></>
+                                <>{isSignup ? 'Create Account' : 'Sign In'} <ArrowRight size={18} /></>
                             )}
                         </button>
 
-                        {otpStep && (
-                            <button 
-                                type="button" 
-                                onClick={() => setOtpStep(false)}
-                                style={{ background: 'none', border: 'none', color: '#64748B', fontSize: 13, cursor: 'pointer' }}
-                            >
-                                ← Back to edit details
-                            </button>
-                        )}
                     </form>
 
                     <p style={{ textAlign: 'center', color: '#64748B', fontSize: 14, marginTop: 20 }}>
