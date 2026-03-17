@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { doc, onSnapshot, collection, query, where, addDoc, getDocs, updateDoc, runTransaction } from 'firebase/firestore';
+import { doc, onSnapshot, collection, query, where, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
-import toast from 'react-hot-toast';
 import {
-    MapPin, Calendar, Trophy, Users, Clock, Tag, ChevronDown, X,
-    Award, CheckCircle, ExternalLink, Star, BarChart3,
+    MapPin, Calendar, Users, Clock, Tag, ChevronDown,
+    CheckCircle, ExternalLink,
 } from 'lucide-react';
-import { ORGANIZER_CONFIG } from '../data/advancedOrganizerConfig';
 
 function TabButton({ label, active, onClick }) {
     return (
@@ -23,7 +21,6 @@ function TabButton({ label, active, onClick }) {
     );
 }
 
-
 export default function EventDetailPage() {
     const { id } = useParams();
     const [event, setEvent] = useState(null);
@@ -32,7 +29,6 @@ export default function EventDetailPage() {
     const [loading, setLoading] = useState(true);
     const [tab, setTab] = useState('overview');
     const [openPS, setOpenPS] = useState(null);
-    const { currentUser } = useAuth();
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -61,7 +57,7 @@ export default function EventDetailPage() {
     const handleSponsorClick = async (sponsor) => {
         try {
             await updateDoc(doc(db, 'events', id, 'sponsors', sponsor.id), {
-                clicks: sponsor.clicks + 1
+                clicks: (sponsor.clicks || 0) + 1
             });
         } catch (err) {
             console.error("Failed to track sponsor click:", err);
@@ -114,6 +110,7 @@ export default function EventDetailPage() {
                                 {event.title}
                             </h1>
                             <p style={{ color: '#94A3B8', fontSize: 'clamp(14px, 2vw, 17px)', marginBottom: 20 }}>{event.tagline}</p>
+                            
                             <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', marginBottom: 28 }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                                     <MapPin size={14} color="#64748B" />
@@ -132,6 +129,7 @@ export default function EventDetailPage() {
                                     <span style={{ color: '#94A3B8', fontSize: 14 }}>{event.mode || 'Online'}</span>
                                 </div>
                             </div>
+
                             <div style={{ display: 'flex', gap: 12, marginBottom: 28, flexWrap: 'wrap' }}>
                                 <button onClick={() => navigate(`/events/${id}/register`)} className="btn-gradient" style={{ fontSize: 16, padding: '13px 28px', flex: '1 1 auto', justifyContent: 'center' }}>
                                     Register Now 🚀
@@ -140,13 +138,10 @@ export default function EventDetailPage() {
                                     <Link to={`/events/${id}/projects`} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '13px 28px', background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: 12, color: '#3B82F6', fontSize: 16, fontWeight: 600, textDecoration: 'none', transition: 'all 0.2s', flex: '1 1 auto', justifyContent: 'center' }}>
                                         <ExternalLink size={18} /> View Project Gallery
                                     </Link>
-                                ) || (
-                                    <div style={{ flex: '1 1 100%', display: 'none' }} />
                                 )}
                             </div>
                         </div>
 
-                        {/* Tabs */}
                         <div style={{ display: 'flex', borderBottom: '1px solid #334155', overflowX: 'auto' }}>
                             {['overview', 'teams', 'submissions', 'leaderboard'].map(t => (
                                 <TabButton key={t} label={t.charAt(0).toUpperCase() + t.slice(1)} active={tab === t} onClick={() => setTab(t)} />
@@ -158,16 +153,25 @@ export default function EventDetailPage() {
                 {/* Tab Content */}
                 <div className="container" style={{ paddingTop: 40, paddingBottom: 80 }}>
                     {tab === 'overview' && (
-                        <div style={{ 
-                            display: 'grid', 
-                            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 700px), 1fr))',
-                            gridAutoFlow: 'dense',
-                            gap: 32 
-                        }}>
-                            {/* Left */}
-                            <div>
+                        <div className="overview-grid">
+                            <style>{`
+                                .overview-grid {
+                                    display: flex;
+                                    flex-direction: column;
+                                    gap: 32;
+                                }
+                                @media (min-width: 1100px) {
+                                    .overview-grid {
+                                        display: grid;
+                                        grid-template-columns: 1fr 340px;
+                                    }
+                                }
+                            `}</style>
+                            
+                            {/* Left Content */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                                 {event.description && (
-                                    <div style={{ background: '#1E293B', borderRadius: 16, border: '1px solid #334155', padding: 28, marginBottom: 20 }}>
+                                    <div style={{ background: '#1E293B', borderRadius: 16, border: '1px solid #334155', padding: 28 }}>
                                         <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16 }}>About This Event</h2>
                                         <p style={{ color: '#94A3B8', fontSize: 15, lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>{event.description}</p>
                                     </div>
@@ -175,7 +179,7 @@ export default function EventDetailPage() {
 
                                 {/* Timeline */}
                                 {event.startDate && (
-                                    <div style={{ background: '#1E293B', borderRadius: 16, border: '1px solid #334155', padding: 28, marginBottom: 20 }}>
+                                    <div style={{ background: '#1E293B', borderRadius: 16, border: '1px solid #334155', padding: 28 }}>
                                         <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 20 }}>Timeline</h2>
                                         {[
                                             { label: 'Registration Opens', date: event.createdAt, done: true },
@@ -205,7 +209,7 @@ export default function EventDetailPage() {
 
                                 {/* Problem Statements */}
                                 {event.problemStatements?.length > 0 && (
-                                    <div style={{ background: '#1E293B', borderRadius: 16, border: '1px solid #334155', padding: 28, marginBottom: 20 }}>
+                                    <div style={{ background: '#1E293B', borderRadius: 16, border: '1px solid #334155', padding: 28 }}>
                                         <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16 }}>Problem Statements</h2>
                                         {event.problemStatements.map((ps, i) => (
                                             <div key={i} style={{ marginBottom: 10 }}>
@@ -229,9 +233,9 @@ export default function EventDetailPage() {
                                     </div>
                                 )}
 
-                                {/* Adopted Tracks / Assets */}
+                                {/* Tracks */}
                                 {adoptedTracks?.length > 0 && (
-                                    <div style={{ background: '#1E293B', borderRadius: 16, border: '1px solid #334155', padding: 28, marginBottom: 20 }}>
+                                    <div style={{ background: '#1E293B', borderRadius: 16, border: '1px solid #334155', padding: 28 }}>
                                         <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 24, textAlign: 'center' }}>Sponsored Tracks</h2>
                                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
                                             {adoptedTracks.map(track => (
@@ -249,21 +253,20 @@ export default function EventDetailPage() {
                                     </div>
                                 )}
 
-                                {/* Sponsors Section */}
+                                {/* Sponsors */}
                                 {sponsors.length > 0 && (
-                                    <div style={{ background: '#1E293B', borderRadius: 16, border: '1px solid #334155', padding: 28, marginBottom: 20 }}>
+                                    <div style={{ background: '#1E293B', borderRadius: 16, border: '1px solid #334155', padding: 28 }}>
                                         <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 24, textAlign: 'center' }}>Event Sponsors</h2>
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
                                             {['Title', 'Gold', 'Silver', 'Bronze'].map(tierName => {
                                                 const tierSponsors = sponsors.filter(s => s.tier === tierName);
                                                 if (tierSponsors.length === 0) return null;
                                                 
-                                                // Dynamic sizing based on tier
                                                 const tierStyles = {
-                                                    'Title': { gridTemplateColumns: '1fr', imgHeight: 80, badgeColor: '#F59E0B' },
-                                                    'Gold': { gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', imgHeight: 60, badgeColor: '#FCD34D' },
-                                                    'Silver': { gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', imgHeight: 48, badgeColor: '#94A3B8' },
-                                                    'Bronze': { gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', imgHeight: 40, badgeColor: '#B45309' },
+                                                    'Title': { imgHeight: 80, badgeColor: '#F59E0B' },
+                                                    'Gold': { imgHeight: 60, badgeColor: '#FCD34D' },
+                                                    'Silver': { imgHeight: 48, badgeColor: '#94A3B8' },
+                                                    'Bronze': { imgHeight: 40, badgeColor: '#B45309' },
                                                 };
                                                 const style = tierStyles[tierName];
 
@@ -274,7 +277,7 @@ export default function EventDetailPage() {
                                                             <span style={{ color: style.badgeColor, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>{tierName} SPONSORS</span>
                                                             <div style={{ height: 1, flex: 1, background: 'linear-gradient(270deg, transparent, #334155)' }} />
                                                         </div>
-                                                        <div style={{ display: 'grid', gridTemplateColumns: style.gridTemplateColumns, gap: 16, justifyContent: 'center' }}>
+                                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 16, justifyContent: 'center' }}>
                                                             {tierSponsors.map(sponsor => (
                                                                 <a 
                                                                     key={sponsor.id} 
@@ -283,17 +286,12 @@ export default function EventDetailPage() {
                                                                     rel="noopener noreferrer" 
                                                                     onClick={() => handleSponsorClick(sponsor)}
                                                                     style={{ 
-                                                                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', 
-                                                                        background: '#0F172A', padding: 20, borderRadius: 12, border: '1px solid #334155', 
-                                                                        textDecoration: 'none', transition: 'all 0.2s', cursor: 'pointer' 
+                                                                        display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                                                                        background: '#0F172A', padding: 15, borderRadius: 12, border: '1px solid #334155', 
+                                                                        textDecoration: 'none', transition: 'all 0.2s'
                                                                     }}
-                                                                    onMouseOver={(e) => { e.currentTarget.style.borderColor = style.badgeColor; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-                                                                    onMouseOut={(e) => { e.currentTarget.style.borderColor = '#334155'; e.currentTarget.style.transform = 'none'; }}
                                                                 >
-                                                                    <img src={sponsor.logoUrl} alt={sponsor.name} style={{ height: style.imgHeight, width: '100%', objectFit: 'contain', filter: 'grayscale(20%)', transition: 'all 0.2s', mixBlendMode: 'luminosity' }} 
-                                                                        onMouseOver={e => { e.currentTarget.style.filter = 'grayscale(0%)'; e.currentTarget.style.mixBlendMode = 'normal'; }}
-                                                                        onMouseOut={e => { e.currentTarget.style.filter = 'grayscale(20%)'; e.currentTarget.style.mixBlendMode = 'luminosity'; }}
-                                                                    />
+                                                                    <img src={sponsor.logoUrl} alt={sponsor.name} style={{ height: style.imgHeight, maxWidth: '100%', objectFit: 'contain' }} />
                                                                 </a>
                                                             ))}
                                                         </div>
@@ -305,11 +303,11 @@ export default function EventDetailPage() {
                                 )}
                             </div>
 
-                            {/* Right Sidebar */}
-                            <div>
-                                {/* Prize Podium */}
+                            {/* Right Content / Sidebar */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                                {/* Prize Pool */}
                                 {(event.prizes?.first || event.prizes?.second || event.prizes?.third) && (
-                                    <div style={{ background: '#1E293B', borderRadius: 16, border: '1px solid #334155', padding: 24, marginBottom: 16 }}>
+                                    <div style={{ background: '#1E293B', borderRadius: 16, border: '1px solid #334155', padding: 24 }}>
                                         <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 20 }}>🏆 Prize Pool</h3>
                                         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 8, marginBottom: 20 }}>
                                             {[
@@ -336,7 +334,7 @@ export default function EventDetailPage() {
                                 )}
 
                                 {/* Quick Info */}
-                                <div style={{ background: '#1E293B', borderRadius: 16, border: '1px solid #334155', padding: 24, marginBottom: 16 }}>
+                                <div style={{ background: '#1E293B', borderRadius: 16, border: '1px solid #334155', padding: 24 }}>
                                     {[
                                         { icon: Users, label: 'Max Team Size', value: event.maxTeamSize },
                                         { icon: Users, label: 'Max Participants', value: event.maxParticipants },
@@ -352,24 +350,6 @@ export default function EventDetailPage() {
                                         </div>
                                     ))}
                                 </div>
-
-                                {/* Judging Criteria */}
-                                {event.judgingCriteria?.length > 0 && (
-                                    <div style={{ background: '#1E293B', borderRadius: 16, border: '1px solid #334155', padding: 24 }}>
-                                        <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 14 }}>Judging Criteria</h3>
-                                        {event.judgingCriteria.map(c => (
-                                            <div key={c.name} style={{ marginBottom: 10 }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                                                    <span style={{ color: '#94A3B8', fontSize: 13 }}>{c.name}</span>
-                                                    <span style={{ color: '#3B82F6', fontSize: 13, fontWeight: 700 }}>{c.weight}%</span>
-                                                </div>
-                                                <div style={{ height: 4, background: '#334155', borderRadius: 2 }}>
-                                                    <div style={{ height: '100%', width: `${c.weight}%`, background: 'linear-gradient(90deg,#3B82F6,#8B5CF6)', borderRadius: 2 }} />
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
                             </div>
                         </div>
                     )}

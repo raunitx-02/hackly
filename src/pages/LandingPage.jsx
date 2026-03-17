@@ -234,15 +234,24 @@ export default function LandingPage() {
                         </div>
 
                         {/* Right: Dashboard mockup */}
-                        <div style={{ position: 'relative' }} className="hero-mockup">
-                            <div style={{
+                        <div style={{ position: 'relative', width: '100%', maxWidth: 'min(100%, 600px)', margin: '0 auto' }} className="hero-mockup">
+                            <style>{`
+                                .mockup-card {
+                                    transform: perspective(1000px) rotateY(-8deg) rotateX(2deg);
+                                }
+                                @media (max-width: 1024px) {
+                                    .mockup-card {
+                                        transform: none !important;
+                                    }
+                                }
+                            `}</style>
+                            <div className="mockup-card" style={{
                                 background: '#1E293B', borderRadius: 20, border: '1px solid #334155',
                                 padding: 20, boxShadow: '0 0 60px rgba(59,130,246,0.2), 0 40px 80px rgba(0,0,0,0.5)',
-                                transform: 'perspective(1000px) rotateY(-8deg) rotateX(2deg)',
                                 transition: 'transform 0.4s ease',
                             }}
-                                onMouseEnter={e => e.currentTarget.style.transform = 'perspective(1000px) rotateY(-2deg) rotateX(0)'}
-                                onMouseLeave={e => e.currentTarget.style.transform = 'perspective(1000px) rotateY(-8deg) rotateX(2deg)'}
+                                onMouseEnter={e => { if (window.innerWidth > 1024) e.currentTarget.style.transform = 'perspective(1000px) rotateY(-2deg) rotateX(0)'; }}
+                                onMouseLeave={e => { if (window.innerWidth > 1024) e.currentTarget.style.transform = 'perspective(1000px) rotateY(-8deg) rotateX(2deg)'; }}
                             >
                                 {/* Fake browser bar */}
                                 <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
