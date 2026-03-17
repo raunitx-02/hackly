@@ -51,13 +51,13 @@ export default function EventRegistrationPage() {
                     const regData = { id: regDoc.id, ...regDoc.data() };
                     setRegistration(regData);
 
-                    // 3. Determine next stage
-                    const forms = (eventData.customForms && eventData.customForms.length > 0) 
-                        ? eventData.customForms 
+                    // 3. Determine next stage (using the same logic as render)
+                    const baseForms = (eventData.customForms && eventData.customForms.length > 0)
+                        ? eventData.customForms
                         : [{ title: 'Registration', fields: DEFAULT_FIELDS }];
-
+                    
                     const completedStages = regData.completedStages || [];
-                    const nextIdx = forms.findIndex((_, idx) => !completedStages.includes(idx));
+                    const nextIdx = baseForms.findIndex((_, idx) => !completedStages.includes(idx));
                     if (nextIdx !== -1) {
                         setActiveStageIdx(nextIdx);
                     } else {
@@ -65,6 +65,18 @@ export default function EventRegistrationPage() {
                     }
                 } else {
                     setActiveStageIdx(0);
+                    // Pre-fill leader info
+                    if (eventData.maxTeamSize > 1) {
+                        setResponses({
+                            'f_name_m1': userProfile?.name || currentUser.displayName || '',
+                            'f_email_m1': currentUser.email || '',
+                        });
+                    } else {
+                        setResponses({
+                            'f_name': userProfile?.name || currentUser.displayName || '',
+                            'f_email': currentUser.email || '',
+                        });
+                    }
                 }
             } catch (err) {
                 console.error(err);
@@ -112,6 +124,7 @@ export default function EventRegistrationPage() {
                         completedStages: [0],
                         registeredAt: new Date().toISOString(),
                         status: event.registrationMode === 'review' ? 'pending' : 'accepted',
+                        teamName: responses.team_name || '',
                     };
                     transaction.set(regRef, regData);
                     
@@ -177,9 +190,32 @@ export default function EventRegistrationPage() {
         );
     }
 
-    const forms = (event?.customForms && event.customForms.length > 0) 
+    const baseForms = (event?.customForms && event.customForms.length > 0) 
         ? event.customForms 
         : [{ title: 'Registration', fields: DEFAULT_FIELDS }];
+
+    let forms = [...baseForms];
+
+    // If it's a team event AND we are on the first stage (index 0) AND not registered yet
+    if (event?.maxTeamSize > 1 && activeStageIdx === 0 && !registration) {
+        const firstForm = { ...forms[0] };
+        const expandedFields = [
+            { id: 'team_name', label: 'Team Name', type: 'text', required: true }
+        ];
+
+        for (let i = 1; i <= event.maxTeamSize; i++) {
+            expandedFields.push({ id: `header_m${i}`, type: 'header', label: i === 1 ? 'Member 1 (Team Leader)' : `Member ${i} Details` });
+            firstForm.fields.forEach(f => {
+                expandedFields.push({
+                    ...f,
+                    id: `${f.id}_m${i}`,
+                    label: i === 1 ? f.label : `${f.label} (${i})`,
+                    required: i === 1 ? f.required : false // Only leader is strictly required
+                });
+            });
+        }
+        forms[0] = { ...firstForm, fields: expandedFields };
+    }
 
     const currentForm = forms[activeStageIdx] || { title: 'Registration', fields: [] };
 
@@ -204,65 +240,73 @@ export default function EventRegistrationPage() {
                     <form onSubmit={handleSubmit}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
                             {currentForm.fields.map(field => (
-                                <div key={field.id}>
-                                    <label className="label">
-                                        {field.label} {field.required && <span style={{ color: '#EF4444' }}>*</span>}
-                                    </label>
-                                    
-                                    {field.type === 'textarea' ? (
-                                        <textarea 
-                                            className="input" 
-                                            style={{ minHeight: 100, resize: 'vertical' }}
-                                            placeholder={`Enter ${field.label.toLowerCase()}...`}
-                                            required={field.required}
-                                            value={responses[field.id] || ''}
-                                            onChange={e => handleResponseChange(field.id, e.target.value)}
-                                        />
-                                    ) : field.type === 'select' ? (
-                                        <select 
-                                            className="input"
-                                            required={field.required}
-                                            value={responses[field.id] || ''}
-                                            onChange={e => handleResponseChange(field.id, e.target.value)}
-                                        >
-                                            <option value="">Select an option</option>
-                                            {field.options?.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                                        </select>
-                                    ) : field.type === 'radio' ? (
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 8 }}>
-                                            {field.options?.map(opt => (
-                                                <label key={opt} style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#CBD5E1', fontSize: 14, cursor: 'pointer' }}>
+                                <div key={field.id} style={field.type === 'header' ? { gridColumn: '1 / -1', marginTop: 12 } : {}}>
+                                    {field.type === 'header' ? (
+                                        <div style={{ paddingBottom: 8, borderBottom: '1px solid #334155', marginBottom: 12 }}>
+                                            <h3 style={{ fontSize: 13, fontWeight: 700, color: '#3B82F6', textTransform: 'uppercase' }}>{field.label}</h3>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <label className="label">
+                                                {field.label} {field.required && <span style={{ color: '#EF4444' }}>*</span>}
+                                            </label>
+                                            
+                                            {field.type === 'textarea' ? (
+                                                <textarea 
+                                                    className="input" 
+                                                    style={{ minHeight: 100, resize: 'vertical' }}
+                                                    placeholder={`Enter ${field.label.toLowerCase()}...`}
+                                                    required={field.required}
+                                                    value={responses[field.id] || ''}
+                                                    onChange={e => handleResponseChange(field.id, e.target.value)}
+                                                />
+                                            ) : field.type === 'select' ? (
+                                                <select 
+                                                    className="input"
+                                                    required={field.required}
+                                                    value={responses[field.id] || ''}
+                                                    onChange={e => handleResponseChange(field.id, e.target.value)}
+                                                >
+                                                    <option value="">Select an option</option>
+                                                    {field.options?.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                                                </select>
+                                            ) : field.type === 'radio' ? (
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 8 }}>
+                                                    {field.options?.map(opt => (
+                                                        <label key={opt} style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#CBD5E1', fontSize: 14, cursor: 'pointer' }}>
+                                                            <input 
+                                                                type="radio" 
+                                                                name={field.id}
+                                                                value={opt}
+                                                                checked={responses[field.id] === opt}
+                                                                onChange={e => handleResponseChange(field.id, e.target.value)}
+                                                                style={{ accentColor: '#3B82F6', width: 18, height: 18 }} 
+                                                            />
+                                                            {opt}
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                            ) : field.type === 'checkbox' ? (
+                                                <label style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#CBD5E1', fontSize: 14, cursor: 'pointer', marginTop: 8 }}>
                                                     <input 
-                                                        type="radio" 
-                                                        name={field.id}
-                                                        value={opt}
-                                                        checked={responses[field.id] === opt}
-                                                        onChange={e => handleResponseChange(field.id, e.target.value)}
+                                                        type="checkbox" 
+                                                        checked={!!responses[field.id]}
+                                                        onChange={e => handleResponseChange(field.id, e.target.checked)}
                                                         style={{ accentColor: '#3B82F6', width: 18, height: 18 }} 
                                                     />
-                                                    {opt}
+                                                    {field.label}
                                                 </label>
-                                            ))}
-                                        </div>
-                                    ) : field.type === 'checkbox' ? (
-                                        <label style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#CBD5E1', fontSize: 14, cursor: 'pointer', marginTop: 8 }}>
-                                            <input 
-                                                type="checkbox" 
-                                                checked={!!responses[field.id]}
-                                                onChange={e => handleResponseChange(field.id, e.target.checked)}
-                                                style={{ accentColor: '#3B82F6', width: 18, height: 18 }} 
-                                            />
-                                            {field.label}
-                                        </label>
-                                    ) : (
-                                        <input 
-                                            type={field.type}
-                                            className="input"
-                                            placeholder={`Enter ${field.label.toLowerCase()}...`}
-                                            required={field.required}
-                                            value={responses[field.id] || ''}
-                                            onChange={e => handleResponseChange(field.id, e.target.value)}
-                                        />
+                                            ) : (
+                                                <input 
+                                                    type={field.type}
+                                                    className="input"
+                                                    placeholder={`Enter ${field.label.toLowerCase()}...`}
+                                                    required={field.required}
+                                                    value={responses[field.id] || ''}
+                                                    onChange={e => handleResponseChange(field.id, e.target.value)}
+                                                />
+                                            )}
+                                        </>
                                     )}
                                 </div>
                             ))}
