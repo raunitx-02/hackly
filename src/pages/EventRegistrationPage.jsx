@@ -7,6 +7,12 @@ import toast from 'react-hot-toast';
 import { Users, User, Mail, Hash, ArrowLeft, Send, CheckCircle } from 'lucide-react';
 import DashboardLayout from '../components/DashboardLayout';
 
+const DEFAULT_FIELDS = [
+    { id: 'f_name', label: 'Full Name', type: 'text', required: true },
+    { id: 'f_email', label: 'Email Address', type: 'email', required: true },
+    { id: 'f_enrollment', label: 'Enrollment / College ID', type: 'text', required: true },
+];
+
 export default function EventRegistrationPage() {
     const { id } = useParams();
     const { currentUser, userProfile } = useAuth();
@@ -46,16 +52,16 @@ export default function EventRegistrationPage() {
                     setRegistration(regData);
 
                     // 3. Determine next stage
-                    if (eventData.customForms) {
-                        const completedStages = regData.completedStages || [];
-                        const nextIdx = eventData.customForms.findIndex((_, idx) => !completedStages.includes(idx));
-                        if (nextIdx !== -1) {
-                            setActiveStageIdx(nextIdx);
-                        } else {
-                            setActiveStageIdx(-1); // All completed
-                        }
+                    const forms = (eventData.customForms && eventData.customForms.length > 0) 
+                        ? eventData.customForms 
+                        : [{ title: 'Registration', fields: DEFAULT_FIELDS }];
+
+                    const completedStages = regData.completedStages || [];
+                    const nextIdx = forms.findIndex((_, idx) => !completedStages.includes(idx));
+                    if (nextIdx !== -1) {
+                        setActiveStageIdx(nextIdx);
                     } else {
-                        setActiveStageIdx(-1); // Legacy or no custom forms
+                        setActiveStageIdx(-1); // All completed
                     }
                 } else {
                     setActiveStageIdx(0);
@@ -78,7 +84,7 @@ export default function EventRegistrationPage() {
         e.preventDefault();
         if (!currentUser) return navigate('/auth');
         
-        const currentForm = event.customForms?.[activeStageIdx] || { fields: [] };
+        const currentForm = forms[activeStageIdx] || { fields: [] };
         
         // Basic validation
         for (const field of currentForm.fields) {
@@ -171,7 +177,11 @@ export default function EventRegistrationPage() {
         );
     }
 
-    const currentForm = event?.customForms?.[activeStageIdx] || { title: 'Registration', fields: [] };
+    const forms = (event?.customForms && event.customForms.length > 0) 
+        ? event.customForms 
+        : [{ title: 'Registration', fields: DEFAULT_FIELDS }];
+
+    const currentForm = forms[activeStageIdx] || { title: 'Registration', fields: [] };
 
     return (
         <DashboardLayout>
@@ -185,7 +195,7 @@ export default function EventRegistrationPage() {
                     
                     <div style={{ marginBottom: 32 }}>
                         <div style={{ color: '#3B82F6', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
-                            Stage {activeStageIdx + 1} of {event?.customForms?.length || 1}
+                            Stage {activeStageIdx + 1} of {forms.length}
                         </div>
                         <h1 style={{ fontSize: 28, fontWeight: 800, color: '#F8FAFC', marginBottom: 8 }}>{currentForm.title}</h1>
                         <p style={{ color: '#94A3B8' }}>{registration ? "Please provide the following additional details." : `Register for ${event?.title}`}</p>
@@ -266,7 +276,7 @@ export default function EventRegistrationPage() {
                         >
                             {submitting ? 'Submitting Responses...' : (
                                 <>
-                                    {activeStageIdx === (event?.customForms?.length || 1) - 1 ? 'Complete Registration' : 'Continue to Next Stage'} <Send size={18} />
+                                    {activeStageIdx === forms.length - 1 ? 'Complete Registration' : 'Continue to Next Stage'} <Send size={18} />
                                 </>
                             )}
                         </button>
