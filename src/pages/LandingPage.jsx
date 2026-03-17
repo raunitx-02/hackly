@@ -160,7 +160,7 @@ export default function LandingPage() {
             {/* ─── HERO ─── */}
             <section style={{
                 minHeight: '100vh', display: 'flex', alignItems: 'center',
-                padding: '120px 0 80px', position: 'relative', overflow: 'hidden',
+                padding: '140px 0 100px', position: 'relative', overflow: 'hidden',
             }}>
                 {/* Background grid */}
                 <div style={{
@@ -306,7 +306,7 @@ export default function LandingPage() {
             <section style={{
                 background: 'linear-gradient(135deg, rgba(59,130,246,0.08), rgba(139,92,246,0.08))',
                 borderTop: '1px solid #334155', borderBottom: '1px solid #334155',
-                padding: '80px 0',
+                padding: '100px 0',
             }}>
                 <div className="container">
                     <div style={{ textAlign: 'center', marginBottom: 56 }}>
@@ -318,14 +318,13 @@ export default function LandingPage() {
                         </p>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 24, marginBottom: 56 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 32, marginBottom: 64 }}>
                         {HOW_IT_WORKS_STEPS.map((step) => (
-                            <div key={step.id} style={{
-                                background: '#1E293B', borderRadius: 16, border: '1px solid #334155',
-                                padding: '32px 24px', transition: 'transform 0.2s, box-shadow 0.2s, border-color 0.2s',
-                                position: 'relative', overflow: 'hidden'
+                            <div key={step.id} className="card-premium" style={{
+                                transition: 'transform 0.3s, box-shadow 0.3s, border-color 0.3s',
+                                position: 'relative', overflow: 'hidden', height: '100%'
                             }}
-                                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.borderColor = '#3B82F6'; e.currentTarget.style.boxShadow = '0 12px 32px rgba(0,0,0,0.2)'; }}
+                                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-6px)'; e.currentTarget.style.borderColor = '#3B82F6'; e.currentTarget.style.boxShadow = '0 20px 40px rgba(0,0,0,0.3)'; }}
                                 onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = '#334155'; e.currentTarget.style.boxShadow = 'none'; }}
                             >
                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
@@ -359,7 +358,7 @@ export default function LandingPage() {
             </section>
 
             {/* ─── FEATURES ─── */}
-            <section id="features" className="section">
+            <section id="features" className="section-padding">
                 <div className="container">
                     <div style={{ textAlign: 'center', marginBottom: 60 }}>
                         <div style={{
@@ -401,7 +400,7 @@ export default function LandingPage() {
             </section>
 
             {/* ─── WHO IT'S FOR ─── */}
-            <section className="section" style={{ background: 'rgba(30,41,59,0.3)' }}>
+            <section className="section-padding" style={{ background: 'rgba(30,41,59,0.3)' }}>
                 <div className="container">
                     <div style={{ textAlign: 'center', marginBottom: 56 }}>
                         <h2 style={{ fontSize: 'clamp(28px, 4vw, 36px)', fontWeight: 700, marginBottom: 16 }}>
@@ -412,14 +411,13 @@ export default function LandingPage() {
                         </p>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 24, marginBottom: 56 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 32, marginBottom: 64 }}>
                         {AUDIENCE_CARDS.map(card => (
-                            <div key={card.id} style={{
-                                background: '#1E293B', borderRadius: 16, border: '1px solid #334155',
-                                padding: '32px 24px', transition: 'transform 0.2s, box-shadow 0.2s, border-color 0.2s',
-                                display: 'flex', flexDirection: 'column'
+                            <div key={card.id} className="card-premium" style={{
+                                transition: 'transform 0.3s, box-shadow 0.3s, border-color 0.3s',
+                                display: 'flex', flexDirection: 'column', height: '100%'
                             }}
-                                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.borderColor = '#3B82F6'; e.currentTarget.style.boxShadow = '0 12px 32px rgba(59,130,246,0.15)'; }}
+                                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-6px)'; e.currentTarget.style.borderColor = '#3B82F6'; e.currentTarget.style.boxShadow = '0 20px 40px rgba(59,130,246,0.2)'; }}
                                 onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = '#334155'; e.currentTarget.style.boxShadow = 'none'; }}
                             >
                                 <div style={{ width: 48, height: 48, borderRadius: 12, background: 'rgba(59,130,246,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20, border: '1px solid rgba(59,130,246,0.2)' }}>
@@ -450,7 +448,7 @@ export default function LandingPage() {
             </section>
 
             {/* ─── TESTIMONIALS ─── */}
-            <section className="section">
+            <section className="section-padding">
                 <div className="container">
                     <div style={{ textAlign: 'center', marginBottom: 56 }}>
                         <h2 style={{ fontSize: 36, fontWeight: 700, marginBottom: 16 }}>
@@ -488,7 +486,7 @@ export default function LandingPage() {
 
             {/* ─── PRICING ─── */}
             {shouldShowPricing && (
-                <section id="pricing" className="section" style={{ background: 'rgba(30,41,59,0.3)' }}>
+                <section id="pricing" className="section-padding" style={{ background: 'rgba(30,41,59,0.3)' }}>
                     <div className="container">
                         <div style={{ textAlign: 'center', marginBottom: 56 }}>
                             <h2 style={{ fontSize: 36, fontWeight: 700, marginBottom: 16 }}>

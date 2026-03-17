@@ -133,13 +133,13 @@ export default function EventsPage() {
                 {/* Header */}
                 <div style={{
                     background: 'linear-gradient(135deg, rgba(59,130,246,0.08), rgba(139,92,246,0.06))',
-                    borderBottom: '1px solid #334155', padding: '48px 0',
+                    borderBottom: '1px solid #334155', padding: '64px 0',
                 }}>
                     <div className="container">
-                        <h1 style={{ fontSize: 36, fontWeight: 800, marginBottom: 8 }}>
+                        <h1 style={{ fontSize: 'clamp(32px, 5vw, 42px)', fontWeight: 800, marginBottom: 12, letterSpacing: '-0.02em' }}>
                             Browse <span className="gradient-text">Events</span>
                         </h1>
-                        <p style={{ color: '#64748B', fontSize: 16, marginBottom: 28 }}>
+                        <p style={{ color: '#64748B', fontSize: 17, marginBottom: 36, maxWidth: 600, lineHeight: 1.6 }}>
                             Discover hackathons, tech fests, and coding contests from colleges across India
                         </p>
 
@@ -156,15 +156,19 @@ export default function EventsPage() {
                         </div>
 
                         {/* Filter Pills */}
-                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                            <Filter size={15} color="#64748B" />
+                        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginRight: 8 }}>
+                                <Filter size={16} color="#3B82F6" />
+                                <span style={{ color: '#64748B', fontSize: 14, fontWeight: 600 }}>Filters</span>
+                            </div>
                             {FILTERS.map(f => (
                                 <button key={f} onClick={() => setActiveFilter(f)} style={{
-                                    padding: '7px 16px', borderRadius: 9999, fontSize: 13, fontWeight: 600,
-                                    cursor: 'pointer', border: '1px solid', transition: 'all 0.15s',
-                                    background: activeFilter === f ? 'linear-gradient(135deg,#3B82F6,#8B5CF6)' : 'rgba(30,41,59,0.8)',
+                                    padding: '8px 20px', borderRadius: 9999, fontSize: 14, fontWeight: 600,
+                                    cursor: 'pointer', border: '1px solid', transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                    background: activeFilter === f ? 'linear-gradient(135deg,#3B82F6,#8B5CF6)' : 'rgba(30,41,59,0.5)',
                                     borderColor: activeFilter === f ? 'transparent' : '#334155',
                                     color: activeFilter === f ? 'white' : '#94A3B8',
+                                    boxShadow: activeFilter === f ? '0 4px 12px rgba(59,130,246,0.3)' : 'none',
                                 }}>
                                     {f}
                                 </button>
