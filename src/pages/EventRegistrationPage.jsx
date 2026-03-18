@@ -65,18 +65,6 @@ export default function EventRegistrationPage() {
                     }
                 } else {
                     setActiveStageIdx(0);
-                    // Pre-fill leader info
-                    if (eventData.maxTeamSize > 1) {
-                        setResponses({
-                            'f_name_m1': userProfile?.name || currentUser.displayName || '',
-                            'f_email_m1': currentUser.email || '',
-                        });
-                    } else {
-                        setResponses({
-                            'f_name': userProfile?.name || currentUser.displayName || '',
-                            'f_email': currentUser.email || '',
-                        });
-                    }
                 }
             } catch (err) {
                 console.error(err);
