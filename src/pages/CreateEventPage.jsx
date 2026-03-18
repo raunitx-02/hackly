@@ -2,13 +2,14 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, getDoc, updateDoc } from 'firebase/firestore';
-import { db, functions } from '../lib/firebase';
+import { db, functions, storage } from '../lib/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useAuth } from '../contexts/AuthContext';
 import DashboardLayout from '../components/DashboardLayout';
 import toast from 'react-hot-toast';
 import {
     CheckCircle, ChevronRight, ChevronLeft, Plus, Trash2,
-    CalendarDays, MapPin, Users, Trophy, Star, Eye, Settings, Sparkles, X, Activity, Tag, FileText
+    CalendarDays, MapPin, Users, Trophy, Star, Eye, Settings, Sparkles, X, Activity, Tag, FileText, Upload, Image as ImageIcon
 } from 'lucide-react';
 import { ORGANIZER_CONFIG } from '../data/advancedOrganizerConfig';
 import { AI_GENERATOR_CONFIG } from '../data/aiGeneratorConfig';
@@ -137,6 +138,8 @@ export default function CreateEventPage() {
     const [submitting, setSubmitting] = useState(false);
     const navigate = useNavigate();
 
+    const [bannerUrl, setBannerUrl] = useState('');
+    const [isUploadingBanner, setIsUploadingBanner] = useState(false);
     const [searchParams] = useSearchParams();
     const editId = searchParams.get('edit');
 
@@ -194,6 +197,9 @@ export default function CreateEventPage() {
                             setRegistrationCategories(data.registrationCategories || []);
                             if (data.customForms) {
                                 setCustomForms(data.customForms);
+                            }
+                            if (data.bannerUrl) {
+                                setBannerUrl(data.bannerUrl);
                             }
                         }
                     }
@@ -273,6 +279,29 @@ export default function CreateEventPage() {
         setCustomForms(newForms);
     };
 
+    const handleBannerUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        if (file.size > 2 * 1024 * 1024) {
+            return toast.error("File size must be less than 2MB");
+        }
+
+        setIsUploadingBanner(true);
+        try {
+            const storageRef = ref(storage, `event_banners/${currentUser.uid}/${Date.now()}_${file.name}`);
+            const snapshot = await uploadBytes(storageRef, file);
+            const url = await getDownloadURL(snapshot.ref);
+            setBannerUrl(url);
+            toast.success("Banner uploaded!");
+        } catch (err) {
+            console.error(err);
+            toast.error("Failed to upload banner");
+        } finally {
+            setIsUploadingBanner(false);
+        }
+    };
+
     const formData = watch();
 
     const next = async () => {
@@ -320,6 +349,7 @@ export default function CreateEventPage() {
                 judges: judges.filter(Boolean),
                 judgingCriteria: criteria,
                 customForms: customForms,
+                bannerUrl: bannerUrl,
                 status: status === 'published' ? 'published' : 'draft',
                 registrationCategories: registrationCategories.filter(c => c.name.trim()),
                 updatedAt: new Date().toISOString(),
@@ -444,6 +474,55 @@ export default function CreateEventPage() {
                             <Field label="Tagline">
                                 <input className="input" placeholder="One line that describes your event..." {...register('tagline')} />
                             </Field>
+
+                            <Field label="Event Banner (16:9 recommended)">
+                                <div style={{ 
+                                    border: '2px dashed #334155', 
+                                    borderRadius: 12, 
+                                    padding: 20, 
+                                    textAlign: 'center',
+                                    position: 'relative',
+                                    background: 'rgba(255,255,255,0.02)',
+                                    minHeight: 120,
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    cursor: 'pointer'
+                                }} onClick={() => document.getElementById('bannerInput').click()}>
+                                    {isUploadingBanner ? (
+                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+                                            <Activity size={24} className="animate-spin" color="#3B82F6" />
+                                            <span style={{ color: '#94A3B8', fontSize: 13 }}>Uploading banner...</span>
+                                        </div>
+                                    ) : bannerUrl ? (
+                                        <div style={{ position: 'relative', width: '100%', maxWidth: 400 }}>
+                                            <img src={bannerUrl} alt="Banner Preview" style={{ width: '100%', borderRadius: 8, height: 180, objectFit: 'cover' }} />
+                                            <button 
+                                                type="button" 
+                                                onClick={(e) => { e.stopPropagation(); setBannerUrl(''); }}
+                                                style={{ position: 'absolute', top: -10, right: -10, background: '#EF4444', color: 'white', border: 'none', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}
+                                            >
+                                                <X size={14} />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <Upload size={32} color="#64748B" style={{ marginBottom: 12 }} />
+                                            <div style={{ color: '#F8FAFC', fontWeight: 600, fontSize: 14, marginBottom: 4 }}>Click to upload banner</div>
+                                            <div style={{ color: '#64748B', fontSize: 12 }}>PNG, JPG or WEBP (Max 2MB)</div>
+                                        </>
+                                    )}
+                                    <input 
+                                        type="file" 
+                                        id="bannerInput" 
+                                        accept="image/*" 
+                                        hidden 
+                                        onChange={handleBannerUpload} 
+                                    />
+                                </div>
+                            </Field>
+
                             <Field label="Description">
                                 <textarea className="input" rows={4} placeholder="Tell participants what this event is about..." {...register('description')} style={{ resize: 'vertical' }} />
                             </Field>

@@ -16,27 +16,38 @@ function EventCard({ event }) {
     const spotsLeft = event.maxParticipants ? event.maxParticipants - (event.registered || 0) : null;
 
     return (
-        <Link to={`/events/${event.id}`} style={{ textDecoration: 'none', display: 'block' }}>
+        <Link to={`/events/${event.id}`} style={{ textDecoration: 'none', display: 'block', height: '100%' }}>
             <div style={{
                 background: '#1E293B', border: '1px solid #334155', borderRadius: 16,
                 overflow: 'hidden', transition: 'all 0.2s ease', cursor: 'pointer',
+                height: 400, display: 'flex', flexDirection: 'column'
             }}
                 onMouseEnter={e => { e.currentTarget.style.borderColor = '#3B82F6'; e.currentTarget.style.boxShadow = '0 0 24px rgba(59,130,246,0.15)'; e.currentTarget.style.transform = 'translateY(-4px)'; }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = '#334155'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'translateY(0)'; }}
             >
-                {/* Banner */}
+                {/* Banner Area */}
                 <div style={{
-                    height: 110, background: `linear-gradient(135deg, ${typeColor}40, ${typeColor}20)`,
-                    borderBottom: `1px solid ${typeColor}30`, position: 'relative', display: 'flex',
-                    alignItems: 'center', justifyContent: 'center',
+                    height: 160, background: `linear-gradient(135deg, ${typeColor}40, ${typeColor}20)`,
+                    borderBottom: '1px solid #334155', position: 'relative', display: 'flex',
+                    alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0
                 }}>
-                    <div style={{ fontSize: 36, fontWeight: 800, color: `${typeColor}60`, letterSpacing: '-0.04em', userSelect: 'none' }}>
-                        {(event.title || '?')[0]}
-                    </div>
+                    {event.bannerUrl ? (
+                        <img 
+                            src={event.bannerUrl} 
+                            alt={event.title} 
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                        />
+                    ) : (
+                        <div style={{ fontSize: 42, fontWeight: 800, color: `${typeColor}40`, letterSpacing: '-0.04em', userSelect: 'none' }}>
+                            {(event.title || '?')[0]}
+                        </div>
+                    )}
+                    
                     <div style={{
                         position: 'absolute', top: 12, left: 12, padding: '4px 10px',
                         borderRadius: 9999, fontSize: 11, fontWeight: 700,
                         background: `${typeColor}25`, color: typeColor, border: `1px solid ${typeColor}40`,
+                        backdropFilter: 'blur(4px)', zIndex: 2
                     }}>
                         {event.type}
                     </div>
@@ -44,7 +55,8 @@ function EventCard({ event }) {
                         <div style={{
                             position: 'absolute', top: 12, right: 12, padding: '4px 10px',
                             borderRadius: 9999, fontSize: 11, fontWeight: 600,
-                            background: 'rgba(0,0,0,0.4)', color: '#94A3B8',
+                            background: 'rgba(0,0,0,0.6)', color: '#F8FAFC',
+                            backdropFilter: 'blur(4px)', zIndex: 2
                         }}>
                             {event.mode}
                         </div>
@@ -52,16 +64,30 @@ function EventCard({ event }) {
                 </div>
 
                 {/* Content */}
-                <div style={{ padding: '16px 18px' }}>
-                    <h3 style={{ fontSize: 16, fontWeight: 700, color: '#F8FAFC', marginBottom: 6, lineHeight: 1.3 }}>
+                <div style={{ padding: '18px', display: 'flex', flexDirection: 'column', flex: 1 }}>
+                    <h3 style={{ 
+                        fontSize: 18, 
+                        fontWeight: 700, 
+                        color: '#F8FAFC', 
+                        marginBottom: 8, 
+                        lineHeight: 1.3,
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                        minHeight: '2.6em' // Ensures consistent space for 2 lines
+                    }}>
                         {event.title}
                     </h3>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
+                    
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 16 }}>
                         <MapPin size={12} color="#64748B" />
-                        <span style={{ color: '#64748B', fontSize: 12 }}>{event.college} · {event.city}</span>
+                        <span style={{ color: '#64748B', fontSize: 12, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {event.college} · {event.city}
+                        </span>
                     </div>
 
-                    <div style={{ display: 'flex', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', gap: 12, marginBottom: 'auto', flexWrap: 'wrap' }}>
                         {event.startDate && (
                             <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                                 <Calendar size={12} color="#94A3B8" />
@@ -73,26 +99,27 @@ function EventCard({ event }) {
                         {event.prizes?.first && (
                             <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                                 <Trophy size={12} color="#F59E0B" />
-                                <span style={{ color: '#F59E0B', fontSize: 12, fontWeight: 600 }}>₹{Number(event.prizes.first).toLocaleString()}</span>
-                            </div>
-                        )}
-                        {event.maxTeamSize && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                                <Users size={12} color="#94A3B8" />
-                                <span style={{ color: '#94A3B8', fontSize: 12 }}>Max {event.maxTeamSize}/team</span>
+                                <span style={{ color: '#F59E0B', fontSize: 12, fontWeight: 700 }}>₹{Number(event.prizes.first).toLocaleString()}</span>
                             </div>
                         )}
                     </div>
 
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'center', 
+                        marginTop: 16,
+                        paddingTop: 16,
+                        borderTop: '1px solid #334155'
+                    }}>
                         {spotsLeft !== null && (
-                            <span style={{ fontSize: 12, color: spotsLeft < 50 ? '#EF4444' : '#64748B' }}>
+                            <span style={{ fontSize: 12, fontWeight: 600, color: spotsLeft < 50 ? '#EF4444' : '#64748B' }}>
                                 {spotsLeft} spots left
                             </span>
                         )}
                         <div style={{
                             display: 'flex', alignItems: 'center', gap: 4,
-                            color: '#3B82F6', fontSize: 13, fontWeight: 600, marginLeft: 'auto',
+                            color: '#3B82F6', fontSize: 13, fontWeight: 700, marginLeft: 'auto',
                         }}>
                             View Details <ChevronRight size={14} />
                         </div>

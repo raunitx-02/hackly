@@ -91,15 +91,23 @@ export default function EventDetailPage() {
             <div style={{ paddingTop: 68 }}>
                 {/* Hero Banner */}
                 <div style={{
-                    background: `linear-gradient(135deg, ${typeColor}30 0%, rgba(15,23,42,0.9) 60%, #0F172A 100%)`,
-                    borderBottom: '1px solid #334155', padding: '80px 0 0',
-                    position: 'relative', overflow: 'hidden',
+                    background: event.bannerUrl 
+                        ? `linear-gradient(rgba(15,23,42,0.7), #0F172A), url(${event.bannerUrl})` 
+                        : `linear-gradient(135deg, ${typeColor}30 0%, rgba(15,23,42,0.9) 60%, #0F172A 100%)`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    borderBottom: '1px solid #334155', 
+                    padding: '80px 0 0',
+                    position: 'relative', 
+                    overflow: 'hidden',
                 }}>
-                    <div style={{
-                        position: 'absolute', inset: 0, opacity: 0.06,
-                        backgroundImage: `linear-gradient(rgba(59,130,246,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(59,130,246,0.5) 1px, transparent 1px)`,
-                        backgroundSize: '48px 48px',
-                    }} />
+                    {!event.bannerUrl && (
+                        <div style={{
+                            position: 'absolute', inset: 0, opacity: 0.06,
+                            backgroundImage: `linear-gradient(rgba(59,130,246,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(59,130,246,0.5) 1px, transparent 1px)`,
+                            backgroundSize: '48px 48px',
+                        }} />
+                    )}
                     <div className="container" style={{ position: 'relative', zIndex: 1 }}>
                         <div style={{ marginBottom: 40 }}>
                             <span style={{
