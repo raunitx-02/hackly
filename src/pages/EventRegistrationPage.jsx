@@ -192,7 +192,6 @@ export default function EventRegistrationPage() {
         ];
 
         for (let i = 1; i <= event.maxTeamSize; i++) {
-            expandedFields.push({ id: `header_m${i}`, type: 'header', label: i === 1 ? 'Member 1 (Team Leader)' : `Member ${i} Details` });
             firstForm.fields.forEach(f => {
                 expandedFields.push({
                     ...f,
