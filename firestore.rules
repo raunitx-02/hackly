@@ -42,7 +42,8 @@ service cloud.firestore {
         (getUserRole() == 'organizer' || isAdmin()) && 
         !isBlacklisted();
       allow update: if isLoggedIn() && !isBlacklisted() &&
-        (resource.data.organizerId == request.auth.uid || isAdmin());
+        (resource.data.organizerId == request.auth.uid || isAdmin() || 
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['registered']));
       allow delete: if isLoggedIn() && (resource.data.organizerId == request.auth.uid || isAdmin());
     }
 
