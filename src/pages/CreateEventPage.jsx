@@ -143,8 +143,18 @@ export default function CreateEventPage() {
     const [searchParams] = useSearchParams();
     const editId = searchParams.get('edit');
 
-    const { register, handleSubmit, watch, formState: { errors }, trigger, getValues, reset } = useForm({
-        defaultValues: { mode: 'Online', maxTeamSize: 4, maxParticipants: 500, type: 'Hackathon', registrationMode: 'open', anonymousJudging: false, publicProjects: false }
+    const { register, handleSubmit, watch, formState: { errors }, trigger, getValues, reset, setValue } = useForm({
+        defaultValues: { 
+            mode: 'Online', 
+            maxTeamSize: 4, 
+            maxParticipants: 500, 
+            type: 'Hackathon', 
+            registrationMode: 'open', 
+            anonymousJudging: false, 
+            publicProjects: false,
+            college: userProfile?.college || '',
+            city: userProfile?.city || ''
+        }
     });
 
     const [eventCount, setEventCount] = useState(null);
@@ -214,7 +224,14 @@ export default function CreateEventPage() {
             setFetchingLimit(false);
             navigate('/auth?redirect=/events/create');
         }
-    }, [currentUser, loading, navigate, editId, reset]);
+    }, [currentUser, loading, navigate, editId, reset, userProfile]);
+
+    useEffect(() => {
+        if (!editId && userProfile) {
+            if (userProfile.college) setValue('college', userProfile.college);
+            if (userProfile.city) setValue('city', userProfile.city);
+        }
+    }, [userProfile, editId, setValue]);
 
     const plan = userProfile?.currentPlan || 'Free / Trial';
     const isFree = plan === 'Free / Trial';
@@ -295,8 +312,8 @@ export default function CreateEventPage() {
             setBannerUrl(url);
             toast.success("Banner uploaded!");
         } catch (err) {
-            console.error(err);
-            toast.error("Failed to upload banner");
+            console.error("BANNER_UPLOAD_ERROR:", err);
+            toast.error("Failed to upload banner: " + (err.message || "Unknown error"));
         } finally {
             setIsUploadingBanner(false);
         }
@@ -528,7 +545,7 @@ export default function CreateEventPage() {
                             </Field>
                             <Row>
                                 <Field label="Organizing College *" error={errors.college?.message}>
-                                    <input className="input" placeholder="IIT Bombay" defaultValue={userProfile?.college} {...register('college', { required: 'College is required' })} />
+                                    <input className="input" placeholder="IIT Bombay" {...register('college', { required: 'College is required' })} />
                                 </Field>
                                 <Field label="City *" error={errors.city?.message}>
                                     <input className="input" placeholder="Mumbai" {...register('city', { required: 'City is required' })} />
