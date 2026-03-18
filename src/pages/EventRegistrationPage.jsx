@@ -184,8 +184,12 @@ export default function EventRegistrationPage() {
 
     let forms = [...baseForms];
 
+    const isCustom = event?.customForms && event.customForms.length > 0;
+    const currentForm = forms[activeStageIdx] || { title: 'Registration', fields: [] };
+
     // If it's a team event AND we are on the first stage (index 0) AND not registered yet
-    if (event?.maxTeamSize > 1 && activeStageIdx === 0 && !registration) {
+    // ONLY expand if the form is NOT custom (organizer provided)
+    if (event?.maxTeamSize > 1 && activeStageIdx === 0 && !registration && !isCustom) {
         const firstForm = { ...forms[0] };
         const expandedFields = [
             { id: 'team_name', label: 'Team Name', type: 'text', required: true }
@@ -204,7 +208,7 @@ export default function EventRegistrationPage() {
         forms[0] = { ...firstForm, fields: expandedFields };
     }
 
-    const currentForm = forms[activeStageIdx] || { title: 'Registration', fields: [] };
+    currentForm = forms[activeStageIdx] || { title: 'Registration', fields: [] };
 
     return (
         <DashboardLayout>
