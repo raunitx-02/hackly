@@ -185,7 +185,7 @@ export default function EventRegistrationPage() {
     let forms = [...baseForms];
 
     const isCustom = event?.customForms && event.customForms.length > 0;
-    const currentForm = forms[activeStageIdx] || { title: 'Registration', fields: [] };
+    let currentForm = forms[activeStageIdx] || { title: 'Registration', fields: [] };
 
     // If it's a team event AND we are on the first stage (index 0) AND not registered yet
     // ONLY expand if the form is NOT custom (organizer provided)
