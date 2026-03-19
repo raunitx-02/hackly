@@ -307,8 +307,8 @@ export default function CreateEventPage() {
                 img.src = event.target.result;
                 img.onload = () => {
                     const canvas = document.createElement('canvas');
-                    const MAX_WIDTH = 1200;
-                    const MAX_HEIGHT = 800;
+                    const MAX_WIDTH = 800;
+                    const MAX_HEIGHT = 600;
                     let width = img.width;
                     let height = img.height;
 
@@ -329,7 +329,7 @@ export default function CreateEventPage() {
                     ctx.drawImage(img, 0, 0, width, height);
                     canvas.toBlob((blob) => {
                         resolve(new File([blob], file.name, { type: 'image/jpeg' }));
-                    }, 'image/jpeg', 0.7);
+                    }, 'image/jpeg', 0.5);
                 };
             };
         });
