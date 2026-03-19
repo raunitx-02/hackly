@@ -141,6 +141,7 @@ export default function CreateEventPage() {
     const [bannerUrl, setBannerUrl] = useState('');
     const [bannerPreviewUrl, setBannerPreviewUrl] = useState('');
     const [isUploadingBanner, setIsUploadingBanner] = useState(false);
+    const uploadPromiseRef = useRef(null);
     const [searchParams] = useSearchParams();
     const editId = searchParams.get('edit');
 
@@ -296,34 +297,75 @@ export default function CreateEventPage() {
         const newForms = [...customForms];
         newForms[formIdx].fields = newForms[formIdx].fields.filter((_, i) => i !== fieldIdx);
         setCustomForms(newForms);
-    }
+    };
 
+    const compressImage = async (file) => {
+        try {
+            const bitmap = await createImageBitmap(file);
+            const canvas = document.createElement('canvas');
+            const MAX_WIDTH = 1200;
+            const MAX_HEIGHT = 800;
+            let width = bitmap.width;
+            let height = bitmap.height;
+
+            if (width > height) {
+                if (width > MAX_WIDTH) {
+                    height *= MAX_WIDTH / width;
+                    width = MAX_WIDTH;
+                }
+            } else {
+                if (height > MAX_HEIGHT) {
+                    width *= MAX_HEIGHT / height;
+                    height = MAX_HEIGHT;
+                }
+            }
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(bitmap, 0, 0, width, height);
+            bitmap.close();
+
+            return new Promise((resolve) => {
+                canvas.toBlob((blob) => {
+                    resolve(new File([blob], file.name, { type: 'image/jpeg' }));
+                }, 'image/jpeg', 0.7);
+            });
+        } catch (e) {
+            console.error("Compression failed, using original:", e);
+            return file;
+        }
+    };
 
     const handleBannerUpload = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
 
-        // Optimistic UI: show preview immediately without waiting for compression/upload
+        // Optimistic UI: show preview immediately
         const localPreview = URL.createObjectURL(file);
         setBannerPreviewUrl(localPreview);
         setIsUploadingBanner(true);
+        
+        const uploadTask = async () => {
+            try {
+                const compressedFile = await compressImage(file);
+                const storageRef = ref(storage, `event_banners/${currentUser.uid}/${Date.now()}_${file.name}`);
+                const snapshot = await uploadBytes(storageRef, compressedFile);
+                const url = await getDownloadURL(snapshot.ref);
+                setBannerUrl(url);
+                setBannerPreviewUrl(url);
+                return url;
+            } catch (error) {
+                console.error("Error uploading banner:", error);
+                setBannerPreviewUrl(''); // Revert on failure
+                toast.error("Banner upload failed. Please try again.");
+                throw error;
+            } finally {
+                setIsUploadingBanner(false);
+                uploadPromiseRef.current = null;
+            }
+        };
 
-        try {
-            const storageRef = ref(storage, `event_banners/${currentUser.uid}/${Date.now()}_${file.name}`);
-            const snapshot = await uploadBytes(storageRef, file);
-            const url = await getDownloadURL(snapshot.ref);
-            
-            // Update with permanent URL
-            setBannerUrl(url);
-            toast.success("Banner optimized & uploaded!");
-        } catch (err) {
-            console.error("BANNER_UPLOAD_ERROR:", err);
-            toast.error("Failed to upload banner: " + (err.message || "Unknown error"));
-            // Revert preview if upload fails
-            setBannerPreviewUrl('');
-        } finally {
-            setIsUploadingBanner(false);
-        }
+        uploadPromiseRef.current = uploadTask();
     };
 
     const formData = watch();
@@ -355,12 +397,17 @@ export default function CreateEventPage() {
         }
 
         setSubmitting(true);
-        try {
-            if (isUploadingBanner) {
-                toast.error("Please wait for the banner to finish uploading before saving.");
+        if (uploadPromiseRef.current) {
+            setSubmitting(true); // Keep submitting true while waiting for upload
+            try {
+                await uploadPromiseRef.current;
+            } catch (err) {
                 setSubmitting(false);
-                return;
+                return; // Error already handled in handleBannerUpload
             }
+        }
+
+        try {
             const eventDoc = {
                 title: data.title, type: data.type, tagline: data.tagline || '',
                 description: data.description || '', college: data.college || userProfile?.college || '',
