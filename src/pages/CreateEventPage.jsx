@@ -547,27 +547,35 @@ export default function CreateEventPage() {
                                     justifyContent: 'center',
                                     cursor: 'pointer'
                                 }} onClick={() => document.getElementById('bannerInput').click()}>
-                                    {isUploadingBanner ? (
+                                    {bannerUrl ? (
+                                        <div style={{ position: 'relative', width: '100%', maxWidth: 400 }}>
+                                            <img src={bannerUrl} alt="Banner Preview" style={{ width: '100%', borderRadius: 8, height: 180, objectFit: 'cover', opacity: isUploadingBanner ? 0.6 : 1 }} />
+                                            {isUploadingBanner && (
+                                                <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+                                                    <Activity size={24} className="animate-spin" color="#3B82F6" />
+                                                    <span style={{ color: 'white', fontSize: 13, fontWeight: 700, textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>Optimizing & Uploading...</span>
+                                                </div>
+                                            )}
+                                            {!isUploadingBanner && (
+                                                <button 
+                                                    type="button" 
+                                                    onClick={(e) => { e.stopPropagation(); setBannerUrl(''); }}
+                                                    style={{ position: 'absolute', top: -10, right: -10, background: '#EF4444', color: 'white', border: 'none', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}
+                                                >
+                                                    <X size={14} />
+                                                </button>
+                                            )}
+                                        </div>
+                                    ) : isUploadingBanner ? (
                                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
                                             <Activity size={24} className="animate-spin" color="#3B82F6" />
-                                            <span style={{ color: '#94A3B8', fontSize: 13 }}>Uploading banner...</span>
-                                        </div>
-                                    ) : bannerUrl ? (
-                                        <div style={{ position: 'relative', width: '100%', maxWidth: 400 }}>
-                                            <img src={bannerUrl} alt="Banner Preview" style={{ width: '100%', borderRadius: 8, height: 180, objectFit: 'cover' }} />
-                                            <button 
-                                                type="button" 
-                                                onClick={(e) => { e.stopPropagation(); setBannerUrl(''); }}
-                                                style={{ position: 'absolute', top: -10, right: -10, background: '#EF4444', color: 'white', border: 'none', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}
-                                            >
-                                                <X size={14} />
-                                            </button>
+                                            <span style={{ color: '#94A3B8', fontSize: 13 }}>Processing...</span>
                                         </div>
                                     ) : (
                                         <>
                                             <Upload size={32} color="#64748B" style={{ marginBottom: 12 }} />
                                             <div style={{ color: '#F8FAFC', fontWeight: 600, fontSize: 14, marginBottom: 4 }}>Click to upload banner</div>
-                                            <div style={{ color: '#64748B', fontSize: 12 }}>PNG, JPG or WEBP (Max 2MB)</div>
+                                            <div style={{ color: '#64748B', fontSize: 12 }}>PNG, JPG or WEBP (Optimized automatically)</div>
                                         </>
                                     )}
                                     <input 
