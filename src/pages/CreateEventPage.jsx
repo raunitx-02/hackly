@@ -567,7 +567,7 @@ export default function CreateEventPage() {
                                             {isUploadingBanner && (
                                                 <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
                                                     <Activity size={24} className="animate-spin" color="#3B82F6" />
-                                                    <span style={{ color: 'white', fontSize: 13, fontWeight: 700, textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>Optimizing & Uploading...</span>
+                                                    <span style={{ color: 'white', fontSize: 13, fontWeight: 700, textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>Fast Uploading...</span>
                                                 </div>
                                             )}
                                             {!isUploadingBanner && (
