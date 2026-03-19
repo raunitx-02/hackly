@@ -298,47 +298,6 @@ export default function CreateEventPage() {
         setCustomForms(newForms);
     }
 
-    const compressImage = async (file) => {
-        return new Promise(async (resolve) => {
-            try {
-                // Zero-Latency Decoding: createImageBitmap is much faster than FileReader + new Image()
-                const bitmap = await createImageBitmap(file);
-                
-                const canvas = document.createElement('canvas');
-                const MAX_WIDTH = 600; // Optimal for cards
-                const MAX_HEIGHT = 450;
-                let width = bitmap.width;
-                let height = bitmap.height;
-
-                if (width > height) {
-                    if (width > MAX_WIDTH) {
-                        height *= MAX_WIDTH / width;
-                        width = MAX_WIDTH;
-                    }
-                } else {
-                    if (height > MAX_HEIGHT) {
-                        width *= MAX_HEIGHT / height;
-                        height = MAX_HEIGHT;
-                    }
-                }
-                
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(bitmap, 0, 0, width, height);
-                
-                // Close bitmap to free memory immediately
-                bitmap.close();
-
-                canvas.toBlob((blob) => {
-                    resolve(new File([blob], file.name, { type: 'image/jpeg' }));
-                }, 'image/jpeg', 0.4); // Ultra-lightweight (avg 20-30KB)
-            } catch (e) {
-                console.error("COMPRESSION_ERROR:", e);
-                resolve(file); // Fallback to original if anything fails
-            }
-        });
-    };
 
     const handleBannerUpload = async (e) => {
         const file = e.target.files[0];
@@ -350,9 +309,8 @@ export default function CreateEventPage() {
         setIsUploadingBanner(true);
 
         try {
-            const compressedFile = await compressImage(file);
             const storageRef = ref(storage, `event_banners/${currentUser.uid}/${Date.now()}_${file.name}`);
-            const snapshot = await uploadBytes(storageRef, compressedFile);
+            const snapshot = await uploadBytes(storageRef, file);
             const url = await getDownloadURL(snapshot.ref);
             
             // Update with permanent URL
@@ -567,7 +525,7 @@ export default function CreateEventPage() {
                                             {isUploadingBanner && (
                                                 <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
                                                     <Activity size={24} className="animate-spin" color="#3B82F6" />
-                                                    <span style={{ color: 'white', fontSize: 13, fontWeight: 700, textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>Fast Uploading...</span>
+                                                    <span style={{ color: 'white', fontSize: 13, fontWeight: 700, textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>Uploading...</span>
                                                 </div>
                                             )}
                                             {!isUploadingBanner && (
