@@ -139,6 +139,7 @@ export default function CreateEventPage() {
     const navigate = useNavigate();
 
     const [bannerUrl, setBannerUrl] = useState('');
+    const [bannerPreviewUrl, setBannerPreviewUrl] = useState('');
     const [isUploadingBanner, setIsUploadingBanner] = useState(false);
     const [searchParams] = useSearchParams();
     const editId = searchParams.get('edit');
@@ -210,6 +211,7 @@ export default function CreateEventPage() {
                             }
                             if (data.bannerUrl) {
                                 setBannerUrl(data.bannerUrl);
+                                setBannerPreviewUrl(data.bannerUrl);
                             }
                         }
                     }
@@ -337,9 +339,9 @@ export default function CreateEventPage() {
         const file = e.target.files[0];
         if (!file) return;
 
-        // Optimistic UI: show preview immediately
+        // Optimistic UI: show preview immediately without waiting for compression/upload
         const localPreview = URL.createObjectURL(file);
-        setBannerUrl(localPreview);
+        setBannerPreviewUrl(localPreview);
         setIsUploadingBanner(true);
 
         try {
@@ -354,6 +356,8 @@ export default function CreateEventPage() {
         } catch (err) {
             console.error("BANNER_UPLOAD_ERROR:", err);
             toast.error("Failed to upload banner: " + (err.message || "Unknown error"));
+            // Revert preview if upload fails
+            setBannerPreviewUrl('');
         } finally {
             setIsUploadingBanner(false);
         }
@@ -389,6 +393,11 @@ export default function CreateEventPage() {
 
         setSubmitting(true);
         try {
+            if (isUploadingBanner) {
+                toast.error("Please wait for the banner to finish uploading before saving.");
+                setSubmitting(false);
+                return;
+            }
             const eventDoc = {
                 title: data.title, type: data.type, tagline: data.tagline || '',
                 description: data.description || '', college: data.college || userProfile?.college || '',
@@ -547,9 +556,9 @@ export default function CreateEventPage() {
                                     justifyContent: 'center',
                                     cursor: 'pointer'
                                 }} onClick={() => document.getElementById('bannerInput').click()}>
-                                    {bannerUrl ? (
+                                    {bannerPreviewUrl ? (
                                         <div style={{ position: 'relative', width: '100%', maxWidth: 400 }}>
-                                            <img src={bannerUrl} alt="Banner Preview" style={{ width: '100%', borderRadius: 8, height: 180, objectFit: 'cover', opacity: isUploadingBanner ? 0.6 : 1 }} />
+                                            <img src={bannerPreviewUrl} alt="Banner Preview" style={{ width: '100%', borderRadius: 8, height: 180, objectFit: 'cover', opacity: isUploadingBanner ? 0.6 : 1 }} />
                                             {isUploadingBanner && (
                                                 <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
                                                     <Activity size={24} className="animate-spin" color="#3B82F6" />
@@ -559,7 +568,7 @@ export default function CreateEventPage() {
                                             {!isUploadingBanner && (
                                                 <button 
                                                     type="button" 
-                                                    onClick={(e) => { e.stopPropagation(); setBannerUrl(''); }}
+                                                    onClick={(e) => { e.stopPropagation(); setBannerUrl(''); setBannerPreviewUrl(''); }}
                                                     style={{ position: 'absolute', top: -10, right: -10, background: '#EF4444', color: 'white', border: 'none', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}
                                                 >
                                                     <X size={14} />
