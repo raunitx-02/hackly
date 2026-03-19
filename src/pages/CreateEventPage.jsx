@@ -521,13 +521,7 @@ export default function CreateEventPage() {
                                 }} onClick={() => document.getElementById('bannerInput').click()}>
                                     {bannerPreviewUrl ? (
                                         <div style={{ position: 'relative', width: '100%', maxWidth: 400 }}>
-                                            <img src={bannerPreviewUrl} alt="Banner Preview" style={{ width: '100%', borderRadius: 8, height: 180, objectFit: 'cover', opacity: isUploadingBanner ? 0.6 : 1 }} />
-                                            {isUploadingBanner && (
-                                                <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-                                                    <Activity size={24} className="animate-spin" color="#3B82F6" />
-                                                    <span style={{ color: 'white', fontSize: 13, fontWeight: 700, textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>Uploading...</span>
-                                                </div>
-                                            )}
+                                            <img src={bannerPreviewUrl} alt="Banner Preview" style={{ width: '100%', borderRadius: 8, height: 180, objectFit: 'cover' }} />
                                             {!isUploadingBanner && (
                                                 <button 
                                                     type="button" 
