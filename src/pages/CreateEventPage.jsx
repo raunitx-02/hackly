@@ -294,23 +294,63 @@ export default function CreateEventPage() {
         const newForms = [...customForms];
         newForms[formIdx].fields = newForms[formIdx].fields.filter((_, i) => i !== fieldIdx);
         setCustomForms(newForms);
+    }
+
+    const compressImage = async (file) => {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (event) => {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 1200;
+                    const MAX_HEIGHT = 800;
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height) {
+                        if (width > MAX_WIDTH) {
+                            height *= MAX_WIDTH / width;
+                            width = MAX_WIDTH;
+                        }
+                    } else {
+                        if (height > MAX_HEIGHT) {
+                            width *= MAX_HEIGHT / height;
+                            height = MAX_HEIGHT;
+                        }
+                    }
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    canvas.toBlob((blob) => {
+                        resolve(new File([blob], file.name, { type: 'image/jpeg' }));
+                    }, 'image/jpeg', 0.7);
+                };
+            };
+        });
     };
 
     const handleBannerUpload = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
 
-        if (file.size > 2 * 1024 * 1024) {
-            return toast.error("File size must be less than 2MB");
-        }
-
+        // Optimistic UI: show preview immediately
+        const localPreview = URL.createObjectURL(file);
+        setBannerUrl(localPreview);
         setIsUploadingBanner(true);
+
         try {
+            const compressedFile = await compressImage(file);
             const storageRef = ref(storage, `event_banners/${currentUser.uid}/${Date.now()}_${file.name}`);
-            const snapshot = await uploadBytes(storageRef, file);
+            const snapshot = await uploadBytes(storageRef, compressedFile);
             const url = await getDownloadURL(snapshot.ref);
+            
+            // Update with permanent URL
             setBannerUrl(url);
-            toast.success("Banner uploaded!");
+            toast.success("Banner optimized & uploaded!");
         } catch (err) {
             console.error("BANNER_UPLOAD_ERROR:", err);
             toast.error("Failed to upload banner: " + (err.message || "Unknown error"));
