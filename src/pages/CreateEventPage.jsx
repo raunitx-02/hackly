@@ -8,7 +8,7 @@ import { useAuth } from '../contexts/AuthContext';
 import DashboardLayout from '../components/DashboardLayout';
 import toast from 'react-hot-toast';
 import {
-    CheckCircle, ChevronRight, ChevronLeft, Plus, Trash2,
+    CheckCircle, ChevronRight, ChevronLeft, Plus, Trash2, ChevronUp, ChevronDown,
     CalendarDays, MapPin, Users, Trophy, Star, Eye, Settings, Sparkles, X, Activity, Tag, FileText, Upload, Image as ImageIcon
 } from 'lucide-react';
 import { ORGANIZER_CONFIG } from '../data/advancedOrganizerConfig';
@@ -291,6 +291,19 @@ export default function CreateEventPage() {
     const updateField = (formIdx, fieldIdx, updates) => {
         const newForms = [...customForms];
         newForms[formIdx].fields[fieldIdx] = { ...newForms[formIdx].fields[fieldIdx], ...updates };
+        setCustomForms(newForms);
+    };
+
+    const moveField = (formIdx, fieldIdx, direction) => {
+        const newForms = [...customForms];
+        const fields = [...newForms[formIdx].fields];
+        const targetIdx = direction === 'up' ? fieldIdx - 1 : fieldIdx + 1;
+        
+        if (targetIdx < 0 || targetIdx >= fields.length) return;
+        
+        const [movedField] = fields.splice(fieldIdx, 1);
+        fields.splice(targetIdx, 0, movedField);
+        newForms[formIdx].fields = fields;
         setCustomForms(newForms);
     };
 
@@ -935,7 +948,35 @@ export default function CreateEventPage() {
 
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                                             {form.fields.map((field, fiIdx) => (
-                                                <div key={fiIdx} style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr auto auto', gap: 12, alignItems: 'center', padding: 12, background: '#0F172A', borderRadius: 10 }}>
+                                                <div key={fiIdx} style={{ display: 'grid', gridTemplateColumns: 'auto 1.5fr 1fr auto auto', gap: 12, alignItems: 'center', padding: 12, background: '#0F172A', borderRadius: 10 }}>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                                        <button 
+                                                            type="button" 
+                                                            onClick={() => moveField(fIdx, fiIdx, 'up')} 
+                                                            disabled={fiIdx === 0}
+                                                            style={{ 
+                                                                background: 'none', border: 'none', 
+                                                                color: fiIdx === 0 ? '#1E293B' : '#64748B', 
+                                                                cursor: fiIdx === 0 ? 'default' : 'pointer',
+                                                                padding: 0, display: 'flex'
+                                                            }}
+                                                        >
+                                                            <ChevronUp size={16} />
+                                                        </button>
+                                                        <button 
+                                                            type="button" 
+                                                            onClick={() => moveField(fIdx, fiIdx, 'down')} 
+                                                            disabled={fiIdx === form.fields.length - 1}
+                                                            style={{ 
+                                                                background: 'none', border: 'none', 
+                                                                color: fiIdx === form.fields.length - 1 ? '#1E293B' : '#64748B', 
+                                                                cursor: fiIdx === form.fields.length - 1 ? 'default' : 'pointer',
+                                                                padding: 0, display: 'flex'
+                                                            }}
+                                                        >
+                                                            <ChevronDown size={16} />
+                                                        </button>
+                                                    </div>
                                                     <input 
                                                         className="input" 
                                                         placeholder="Field Label (e.g. GitHub Link)" 
