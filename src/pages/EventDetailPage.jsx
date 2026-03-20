@@ -220,7 +220,7 @@ export default function EventDetailPage() {
                                                     <div>
                                                         <div style={{ fontSize: 16, fontWeight: 700, color: item.done ? '#F8FAFC' : '#64748B', marginBottom: 4 }}>{item.label}</div>
                                                         <div style={{ fontSize: 14, color: '#94A3B8' }}>
-                                                            {item.date ? new Date(item.date).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
+                                                            {item.date ? new Date(item.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
                                                         </div>
                                                     </div>
                                                 </div>

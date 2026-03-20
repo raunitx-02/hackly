@@ -627,17 +627,17 @@ export default function CreateEventPage() {
                 {step === 2 && (
                     <>
                         <SectionCard title="Dates & Schedule" icon={CalendarDays}>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-                                <Row>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                                <Row cols={2}>
                                     <Field label="Start Date *" error={errors.startDate?.message}>
-                                        <input type="datetime-local" className="input" {...register('startDate', { required: 'Start date required' })} />
+                                        <input type="date" className="input" {...register('startDate', { required: 'Start date required' })} />
                                     </Field>
                                     <Field label="End Date *" error={errors.endDate?.message}>
-                                        <input type="datetime-local" className="input" {...register('endDate', { required: 'End date required' })} />
+                                        <input type="date" className="input" {...register('endDate', { required: 'End date required' })} />
                                     </Field>
                                 </Row>
                                 <Field label="Registration Deadline *" error={errors.registrationDeadline?.message}>
-                                    <input type="datetime-local" className="input" {...register('registrationDeadline', { required: 'Registration deadline required' })} />
+                                    <input type="date" className="input" {...register('registrationDeadline', { required: 'Registration deadline required' })} />
                                 </Field>
                             </div>
                         </SectionCard>
@@ -813,7 +813,7 @@ export default function CreateEventPage() {
                                     <div key={i} style={{ display: 'flex', gap: 8 }}>
                                         {typeof ps === 'object' ? (
                                             <div style={{ flex: 1, padding: 16, background: '#0F172A', borderRadius: 8, border: '1px solid #334155' }}>
-                                                <div style={{ color: '#3B82F6', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>AI Generated</div>
+                                                <div style={{ color: '#3B82F6', fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}>AI Generated</div>
                                                 <div style={{ color: '#F8FAFC', fontWeight: 600, fontSize: 14, marginBottom: 4 }}>{ps.title}</div>
                                                 <div style={{ color: '#94A3B8', fontSize: 13 }}>{ps.description}</div>
                                             </div>
@@ -1022,9 +1022,9 @@ export default function CreateEventPage() {
                                     { label: 'Tagline', value: formData.tagline || '—' },
                                     { label: 'College', value: formData.college },
                                     { label: 'City', value: formData.city },
-                                    { label: 'Start Date', value: formData.startDate ? new Date(formData.startDate).toLocaleString('en-IN') : '—' },
-                                    { label: 'End Date', value: formData.endDate ? new Date(formData.endDate).toLocaleString('en-IN') : '—' },
-                                    { label: 'Registration Deadline', value: formData.registrationDeadline ? new Date(formData.registrationDeadline).toLocaleString('en-IN') : '—' },
+                                    { label: 'Start Date', value: formData.startDate ? new Date(formData.startDate).toLocaleDateString('en-IN') : '—' },
+                                    { label: 'End Date', value: formData.endDate ? new Date(formData.endDate).toLocaleDateString('en-IN') : '—' },
+                                    { label: 'Reg. Deadline', value: formData.registrationDeadline ? new Date(formData.registrationDeadline).toLocaleDateString('en-IN') : '—' },
                                     { label: 'Max Team Size', value: formData.maxTeamSize },
                                     { label: 'Max Participants', value: formData.maxParticipants },
                                     { label: 'Prize Pool', value: formData.prizeTotal ? `₹${Number(formData.prizeTotal).toLocaleString()}` : '—' },
