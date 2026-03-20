@@ -119,14 +119,23 @@ function ApplicationsTab({ event, hasFeature }) {
                                 </td>
                                  <td style={{ padding: '16px 24px', color: '#94A3B8', fontSize: 13, maxWidth: 300 }}>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                                        {Object.entries(reg.responses || {}).map(([key, val]) => {
-                                            const field = (event.customForms || []).flatMap(f => f.fields).find(f => f.id === key);
-                                            return (
-                                                <div key={key} style={{ fontSize: 11, background: '#0F172A', padding: '4px 8px', borderRadius: 4, border: '1px solid #334155' }}>
-                                                    <span style={{ color: '#3B82F6', fontWeight: 600 }}>{field?.label || key}:</span> {typeof val === 'boolean' ? (val ? 'Yes' : 'No') : val}
-                                                </div>
-                                            );
-                                        })}
+                                        {(() => {
+                                            const allFields = (event.customForms || []).flatMap(f => f.fields);
+                                            return Object.entries(reg.responses || {})
+                                                .sort(([idA], [idB]) => {
+                                                    const idxA = allFields.findIndex(f => f.id === idA);
+                                                    const idxB = allFields.findIndex(f => f.id === idB);
+                                                    return (idxA === -1 ? 999 : idxA) - (idxB === -1 ? 999 : idxB);
+                                                })
+                                                .map(([key, val]) => {
+                                                    const field = allFields.find(f => f.id === key);
+                                                    return (
+                                                        <div key={key} style={{ fontSize: 11, background: '#0F172A', padding: '4px 8px', borderRadius: 4, border: '1px solid #334155' }}>
+                                                            <span style={{ color: '#3B82F6', fontWeight: 600 }}>{field?.label || key}:</span> {typeof val === 'boolean' ? (val ? 'Yes' : 'No') : val}
+                                                        </div>
+                                                    );
+                                                });
+                                        })()}
                                         {!reg.responses && <span style={{ color: '#475569' }}>— No responses —</span>}
                                     </div>
                                 </td>
@@ -186,11 +195,21 @@ function ReportsTab({ event }) {
                     RegisteredAt: reg.registeredAt 
                 };
                 
-                // Flatten responses into columns
+                // Flatten responses into columns (ordered)
                 if (reg.responses) {
+                    const allFields = (event.customForms || []).flatMap(f => f.fields);
+                    allFields.forEach(field => {
+                        const val = reg.responses[field.id];
+                        if (val !== undefined) {
+                            base[field.label || field.id] = typeof val === 'boolean' ? (val ? 'Yes' : 'No') : val;
+                        }
+                    });
+                    // Catch any responses that don't match fields (fallback)
                     Object.entries(reg.responses).forEach(([key, val]) => {
-                        const field = (event.customForms || []).flatMap(f => f.fields).find(f => f.id === key);
-                        base[field?.label || key] = typeof val === 'boolean' ? (val ? 'Yes' : 'No') : val;
+                        const label = allFields.find(f => f.id === key)?.label || key;
+                        if (base[label] === undefined) {
+                            base[label] = typeof val === 'boolean' ? (val ? 'Yes' : 'No') : val;
+                        }
                     });
                 }
                 return base;
