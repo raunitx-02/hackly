@@ -5,14 +5,14 @@ import { db } from '../lib/firebase';
 
 import { Search, MapPin, Calendar, Trophy, Users, Filter, ChevronRight } from 'lucide-react';
 
-const FILTERS = ['All', 'Hackathon', 'Tech Fest', 'Coding Contest', 'Workshop', 'Online', 'Offline', 'Open'];
-const TYPE_COLORS = {
+const FILTERS = ['All', 'Hackathon', 'Tech Fest', 'Coding Contest', 'Pitch Deck', 'Workshop', 'Online', 'Offline', 'Open'];
+const categoryColors = {
     'Hackathon': '#3B82F6', 'Tech Fest': '#8B5CF6', 'Coding Contest': '#10B981',
-    'Workshop': '#F59E0B', 'Online': '#06B6D4', 'Offline': '#EF4444',
+    'Pitch Deck': '#F59E0B', 'Workshop': '#EC4899', 'Other': '#64748B'
 };
 
 function EventCard({ event }) {
-    const typeColor = TYPE_COLORS[event.type] || '#3B82F6';
+    const typeColor = categoryColors[event.type] || '#3B82F6';
     const spotsLeft = event.maxParticipants ? event.maxParticipants - (event.registered || 0) : null;
 
     return (
