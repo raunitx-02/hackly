@@ -188,6 +188,13 @@ export default function EventDetailPage() {
                                     </div>
                                 )}
 
+                                {event.rules && (
+                                    <div className="card-premium">
+                                        <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 20, color: '#F8FAFC' }}>Rules & Regulations</h2>
+                                        <p style={{ color: '#94A3B8', fontSize: 16, lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>{event.rules}</p>
+                                    </div>
+                                )}
+
                                 {/* Timeline */}
                                 {event.startDate && (
                                     <div className="card-premium">

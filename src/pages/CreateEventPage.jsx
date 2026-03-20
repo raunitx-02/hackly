@@ -202,6 +202,7 @@ export default function CreateEventPage() {
                                 prize2: data.prizes?.second,
                                 prize3: data.prizes?.third,
                                 prizeTotal: data.prizes?.total,
+                                rules: data.rules,
                             });
                             setProblemStatements(data.problemStatements || ['']);
                             setJudges(data.judges || ['']);
@@ -390,7 +391,7 @@ export default function CreateEventPage() {
         const data = getValues();
 
         // Content Moderation check
-        const fieldsToCheck = [data.title, data.tagline, data.description, ...problemStatements];
+        const fieldsToCheck = [data.title, data.tagline, data.description, data.rules, ...problemStatements];
         if (fieldsToCheck.some(containsBlockedWords)) {
             toast.error("Your content contains prohibited words. Please review your title or description.");
             return;
@@ -426,6 +427,7 @@ export default function CreateEventPage() {
                 judgingCriteria: criteria,
                 customForms: customForms,
                 bannerUrl: bannerUrl,
+                rules: data.rules || '',
                 status: status === 'published' ? 'published' : 'draft',
                 registrationCategories: registrationCategories.filter(c => c.name.trim()),
                 updatedAt: new Date().toISOString(),
@@ -602,8 +604,12 @@ export default function CreateEventPage() {
                                 </div>
                             </Field>
 
-                            <Field label="Description">
+                            <Field label="About Event">
                                 <textarea className="input" rows={4} placeholder="Tell participants what this event is about..." {...register('description')} style={{ resize: 'vertical' }} />
+                            </Field>
+
+                            <Field label="Rules & Regulations">
+                                <textarea className="input" rows={6} placeholder="List all the rules, eligibility, and guidelines for your event..." {...register('rules')} style={{ resize: 'vertical' }} />
                             </Field>
                             <Row>
                                 <Field label="Organizing College *" error={errors.college?.message}>
