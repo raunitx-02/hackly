@@ -900,9 +900,11 @@ export default function CreateEventPage() {
                             </SectionCard>
 
                             <SectionCard title="Judging Criteria" icon={Star}>
-                                <p style={{ color: '#64748B', fontSize: 13, marginBottom: 16 }}>
-                                    Total weight must be 100%. Currently: <span style={{ color: totalWeight === 100 ? '#10B981' : '#EF4444', fontWeight: 700 }}>{totalWeight}%</span>
-                                </p>
+                                {criteria.length > 0 && (
+                                    <p style={{ color: '#64748B', fontSize: 13, marginBottom: 16 }}>
+                                        Total weight must be 100%. Currently: <span style={{ color: totalWeight === 100 ? '#10B981' : '#EF4444', fontWeight: 700 }}>{totalWeight}%</span>
+                                    </p>
+                                )}
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                                     {criteria.map((c, i) => (
                                         <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 120px auto', gap: 8, alignItems: 'center' }}>
@@ -914,12 +916,10 @@ export default function CreateEventPage() {
                                                     style={{ paddingRight: 28 }} />
                                                 <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: '#64748B', fontSize: 13 }}>%</span>
                                             </div>
-                                            {criteria.length > 1 && (
-                                                <button type="button" onClick={() => setCriteria(criteria.filter((_, k) => k !== i))}
-                                                    style={{ padding: '0 12px', height: 44, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, cursor: 'pointer', color: '#EF4444', flexShrink: 0 }}>
-                                                    <Trash2 size={15} />
-                                                </button>
-                                            )}
+                                            <button type="button" onClick={() => setCriteria(criteria.filter((_, k) => k !== i))}
+                                                style={{ padding: '0 12px', height: 44, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, cursor: 'pointer', color: '#EF4444', flexShrink: 0 }}>
+                                                <Trash2 size={15} />
+                                            </button>
                                         </div>
                                     ))}
                                     <button type="button" onClick={() => setCriteria([...criteria, { name: '', weight: 0 }])}

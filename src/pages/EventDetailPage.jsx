@@ -325,11 +325,11 @@ export default function EventDetailPage() {
                                 </div>
 
                                 {/* Judging Criteria */}
-                                {event.judgingCriteria?.length > 0 && (
+                                {event.judgingCriteria?.length > 0 && event.judgingCriteria.some(c => c.name.trim()) && (
                                     <div className="card-premium">
                                         <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 20 }}>Judging Criteria</h3>
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                                            {event.judgingCriteria.map(c => (
+                                            {event.judgingCriteria.map(c => c.name.trim() && (
                                                 <div key={c.name}>
                                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                                                         <span style={{ color: '#94A3B8', fontSize: 14, fontWeight: 500 }}>{c.name}</span>
