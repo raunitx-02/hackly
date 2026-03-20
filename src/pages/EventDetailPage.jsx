@@ -201,7 +201,7 @@ export default function EventDetailPage() {
                                         <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 28, color: '#F8FAFC' }}>Event Timeline</h2>
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
                                             {[
-                                                { label: 'Registration Opens', date: event.createdAt, done: true },
+                                                { label: 'Registration Opens', date: event.registrationStartDate || event.createdAt, done: new Date() > new Date(event.registrationStartDate || event.createdAt) },
                                                 { label: 'Registration Deadline', date: event.registrationDeadline, done: new Date() > new Date(event.registrationDeadline) },
                                                 { label: 'Event Starts', date: event.startDate, done: new Date() > new Date(event.startDate) },
                                                 { label: 'Event Ends', date: event.endDate, done: new Date() > new Date(event.endDate) },

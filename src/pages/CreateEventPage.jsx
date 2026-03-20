@@ -190,6 +190,7 @@ export default function CreateEventPage() {
                                 college: data.college,
                                 city: data.city,
                                 startDate: data.startDate,
+                                registrationStartDate: data.registrationStartDate,
                                 endDate: data.endDate,
                                 registrationDeadline: data.registrationDeadline,
                                 maxTeamSize: data.maxTeamSize,
@@ -387,7 +388,7 @@ export default function CreateEventPage() {
     const next = async () => {
         const fieldsPerStep = {
             1: ['title', 'type', 'college', 'city'],
-            2: ['startDate', 'endDate', 'registrationDeadline'],
+            2: ['startDate', 'endDate', 'registrationStartDate', 'registrationDeadline'],
             3: [],
         };
         const valid = await trigger(fieldsPerStep[step] || []);
@@ -427,6 +428,7 @@ export default function CreateEventPage() {
                 description: data.description || '', college: data.college || userProfile?.college || '',
                 city: data.city || '', organizerId: currentUser.uid,
                 startDate: data.startDate, endDate: data.endDate,
+                registrationStartDate: data.registrationStartDate || '',
                 registrationDeadline: data.registrationDeadline,
                 maxTeamSize: Number(data.maxTeamSize) || 4,
                 maxParticipants: Number(data.maxParticipants) || 500,
@@ -649,9 +651,14 @@ export default function CreateEventPage() {
                                         <input type="date" className="input" {...register('endDate', { required: 'End date required' })} />
                                     </Field>
                                 </Row>
-                                <Field label="Registration Deadline *" error={errors.registrationDeadline?.message}>
-                                    <input type="date" className="input" {...register('registrationDeadline', { required: 'Registration deadline required' })} />
-                                </Field>
+                                <Row cols={2}>
+                                    <Field label="Registration Start *" error={errors.registrationStartDate?.message}>
+                                        <input type="date" className="input" {...register('registrationStartDate', { required: 'Registration start date required' })} />
+                                    </Field>
+                                    <Field label="Registration Deadline *" error={errors.registrationDeadline?.message}>
+                                        <input type="date" className="input" {...register('registrationDeadline', { required: 'Registration deadline required' })} />
+                                    </Field>
+                                </Row>
                             </div>
                         </SectionCard>
 
@@ -1064,6 +1071,7 @@ export default function CreateEventPage() {
                                     { label: 'College', value: formData.college },
                                     { label: 'City', value: formData.city },
                                     { label: 'Start Date', value: formData.startDate ? new Date(formData.startDate).toLocaleDateString('en-IN') : '—' },
+                                    { label: 'Reg. Start', value: formData.registrationStartDate ? new Date(formData.registrationStartDate).toLocaleDateString('en-IN') : '—' },
                                     { label: 'End Date', value: formData.endDate ? new Date(formData.endDate).toLocaleDateString('en-IN') : '—' },
                                     { label: 'Reg. Deadline', value: formData.registrationDeadline ? new Date(formData.registrationDeadline).toLocaleDateString('en-IN') : '—' },
                                     { label: 'Max Team Size', value: formData.maxTeamSize },
