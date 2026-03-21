@@ -78,14 +78,30 @@ function ApplicationsTab({ event, hasFeature }) {
         } catch (err) { toast.error('Check-in failed: ' + err.message); }
     };
 
+    const deleteRegistration = async (regId) => {
+        if (!window.confirm('Are you sure you want to delete this registration? This cannot be undone.')) return;
+        try {
+            await deleteDoc(doc(db, 'registrations', regId));
+            // Decrement registered count in event
+            await updateDoc(doc(db, 'events', event.id), {
+                registered: Math.max(0, (event.registered || 1) - 1)
+            });
+            toast.success('Registration deleted! 🗑️');
+        } catch (err) { toast.error('Delete failed: ' + err.message); }
+    };
+
     if (loading) return <div style={{ padding: 40, color: '#94A3B8' }}>Loading applications...</div>;
 
-    if (event.registrationMode !== 'review') {
-        return <div style={{ padding: 40, color: '#64748B' }}>Registration mode is set to "Open". All participants are automatically accepted.</div>;
-    }
+    // Show a notice if in Open mode, but don't hide the list
+    const isOpenMode = event.registrationMode !== 'review';
 
     return (
         <div style={{ background: '#1E293B', borderRadius: 16, border: '1px solid #334155', overflow: 'hidden' }}>
+            {isOpenMode && (
+                <div style={{ padding: '12px 24px', background: 'rgba(59,130,246,0.05)', color: '#94A3B8', fontSize: 12, borderBottom: '1px solid #334155', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Shield size={14} /> Registration mode is set to "Open". New participants are automatically accepted.
+                </div>
+            )}
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                 <thead style={{ background: 'rgba(255,255,255,0.02)' }}>
                     <tr style={{ borderBottom: '1px solid #334155' }}>
@@ -169,6 +185,10 @@ function ApplicationsTab({ event, hasFeature }) {
                                             padding: '6px 10px', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4
                                         }}>
                                         {reg.isCheckedIn ? 'Checked-In' : 'Mark Check-In'}
+                                    </button>
+                                    <button onClick={() => deleteRegistration(reg.id)} title="Delete Application"
+                                        style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#EF4444', padding: 6, borderRadius: 6, cursor: 'pointer' }}>
+                                        <Trash2 size={16} />
                                     </button>
                                 </td>
                             </tr>
